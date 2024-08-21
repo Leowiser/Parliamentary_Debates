@@ -3,28 +3,35 @@ title: "Britain_on_Europe"
 output:
   html_document:
     df_print: paged
+  
 date: "`r Sys.Date()`"
 ---
 
 # The EU from a British perspective: 17 years of debates in the British parliament
 
 ## Introduction
+The positive outcome of the British referendum to withdrawal from the EU in 2016 came as a surprise to most other member states of the European Union.With a wining margin of only 3.8% and an overall approval to leave the European Union by 51.9% the decision was conceivably close (House of Commons Library, 2016). This direct democratic approach was relatively unusual especially since the United Kingdom of England and Northern Ireland (UK) has a strong representative democracy in which the sovereignty of the parliament is "the most important part of the UK constitution" (UK Parliament)^[The parliament generally refers to the house of commons. Thus in the following text house of commons and parliament are used interchangeably]. Furthermore, the Prime Minister at the time David Cameron as well as the biggest opposition party very much favoured remaining in the EU and thus disagreeing with the outcome of the referendum (cf. p.445, Russell, 2020). This vast majority for remaining in the EU in the parliament did not only lead to "no proper planning for a Leave vote" (Public Administration and Constitutional Affairs Committee, 2017, p. 4), but also to a clear difference between what most members of parliament (MP) and what the population wanted. The struggle of how to leave the EU thus triggered nearly 4 years of debates in the house of commons.
 
-Research question: How did the sentiment in debates about EU topics changed over time in the house of commons?
+Russell (2020) raises that these debates which overturned deals with the EU multiple times even lead to an anti-parliamentary rhetoric from the Prime Ministers Theresa May as well as Boris Johnson and he Attorney General Geoffrey Cox.
 
--	Difference between general EU topics and Topics that are directly connected to Brexit/withdrawl?
-o	Compare against all of it. Is there a difference.
+This anti-parliamentary populist rhetoric raises the question whether the UK parliament really had a strong positive sentiment towards the EU and even more interesting if that was especially strong during the times of the Brexit debates.
 
--	How did the majorities in the British parliament changed the sentiment?
+This clearly shows that the European Union and especially Brexit is a highly emotional topic in British politics. 
 
--	Does this mirror the local populations sentiment?
+- Emotion shape plitics
+- Rheault: Measuring Emotion in Parliamentary Debates with Automated Textual Analysis, shows that debates became more positive.
 
+Thus the following paper tries to find answers to the following research question: 
+
+* How did the sentiment in debates about EU topics changed over time in the house of commons?
+
+* Is the sentiment significantly different during debates about Brexit or withdrawl from the EU?
+
+* Is there a visible difference depending on the current majorities in parliament?
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-## Ethics
 
 ## Data
 To answer the question we need the data of the debates in the british parliament. To gather these parliamentary debates, we web scraped the the debates in the house of commons from the TheyWorkForYou website. TheyWorkForYou is run by mySociety a british non for profit organization and aims to make the work of the Uk parliament more accesible and transparent to the wider public (source). In this capacity they also publish a mirrored version of Hansard the official webpage for transcripts of UK debates (source). 
@@ -265,3 +272,14 @@ n_distinct(df_clean$speech_content)
 
 
 ## Sentiments
+
+## References
+
+House of Commons Library. (2016). *Analysis of the EU Referendum results 2016*. <https://commonslibrary.parliament.uk/research-briefings/cbp-7639/>. Accessed 21.08.2024
+
+Public Administration and Constitutional Affairs Committee. (2017). Lessons Learned from
+the EU Referendum (Twelth Report of Session 2016-17). *House of Commons*.
+
+Russell, M. (2021). Brexit and Parliament: The Anatomy of a Perfect Storm. *Parliamentary Affairs*, 74, 443-463  
+
+UK Parliament. *Parliamentary Sovereignty*. <https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/>. Accessed 21.08.2024
