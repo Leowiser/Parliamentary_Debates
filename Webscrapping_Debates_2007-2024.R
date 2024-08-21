@@ -1,227 +1,183 @@
 install.packages(c("tidyverse", 
-                   "httr", "jsonlite", "glue", 
-                   "data.table"))
-install.packages("quanteda")
-install.packages("topicmodels")
+                   "httr", "glue", "dplyr", "stringr"))
+library(dplyr)
 library("tidyverse")
 library("httr")
-library("jsonlite")
 library("rvest")
 library("xml2")
 library("glue")
-library("data.table")
 library("rvest")
 library("xml2")
 library("glue")
-library("data.table")
-library("quanteda")
-library("topicmodels")
-library(readxl)
+library(stringr)
 
-links <- read_xlsx(path="C:/Users/leonw/OneDrive - KU Leuven/Desktop/British Parliament Debates.xlsx")
+SearchTerms <- c("European+Union","European+Commission","European+Council", "Brexit")
+TitleTerms <- c("European Union","European Commission","European Council", "Brexit")
+StartDate = "2007-06-27"
+EndDate = "2024-08-19"
+base_url = "https://www.theyworkforyou.com"
 
-
-my_data <- read.delim("C:/Users/leonw/Downloads/UK’s Exit from the European Union 2023-04-24.txt")
-
-
-base_url <- "https://hansard.parliament.uk"
-
-# Extracting the links from the second row of the 'links' data frame
-link_list <- as.character(links[, 2])
-print(link_list[1])
 # Initialize a data frame to store the results
 results_df <- data.frame(
-  contribution_id = character(),
+  speech_id = character(),
   debate_date = character(),
   debate_title = character (),
-  debate_id = character (),
-  paragraphs = character(),
-  primary_info = character(),
-  secondary_info = character(),
+  speech_content = character(),
+  speaker_name = character(),
+  speaker_party = character(),
   stringsAsFactors = FALSE
 )
 
-# Base URL (if needed for constructing full URLs from relative links)
-base_url <- "https://hansard.parliament.uk"
+# Initialize vectors to store all titles and links
+all_titles <- c()
+all_links <- c()
 
-# Loop through each row of the links data frame
-for (i in 1:nrow(links)) {
-  # Extract the debate ID (row number) and ensure it's an integer
-  debate_id <- as.integer(i)
+# Assuming SearchTerms, base_url, StartDate are already defined in your environment
+
+for (i in seq_along(SearchTerms)) {
+  link <- paste0(base_url, "/search/?q=", SearchTerms[i], "&phrase=&exclude=&from=", StartDate, "&to=", EndDate,"&person=&section=debates&column=")
+  print(link)
+  Sys.sleep(sample(3:4, 1))  # Random delay between 3 to 5 seconds
   
-  # Extract the debate date from the first column
-  debate_date <- as.character(links[i, 1])
+  # Error handling for the main page
+  page <- tryCatch({
+    read_html(link)
+  }, error = function(e) {
+    message("Error accessing main search page: ", link)
+    return(NULL)
+  })
   
-  # Extract the link from the second column of the current row
-  link <- as.character(links[i, 2])
+  if (is.null(page)) next  # Skip to the next iteration if the page is NULL
   
-  # Extract the debate title from the link (the part after the last '/')
-  debate_title <- sub('.*/', '', link)
+  # Extract titles and links from the first page
+  titles <- page %>%
+    html_nodes(".search-result__title a") %>%  # Adjust the CSS selector if needed
+    html_text()
   
-  tryCatch({
-    # Read the HTML page for the current link
-    page <- read_html(link)
-    
-    # Extract all contributions
-    contributions <- page %>%
-      html_nodes('.contribution')
-    
-    # Loop through each contribution
-    for (contribution in contributions) {
-      # Get the data-contribution-id
-      contribution_id <- contribution %>%
-        html_attr('data-contribution-id')
+  links <- page %>%
+    html_nodes(".search-result__title a") %>%  # Adjust the CSS selector if needed
+    html_attr("href")
+  
+  # Combine them with all_titles and all_links
+  all_titles <- c(all_titles, titles)
+  all_links <- c(all_links, links)
+  
+  # Get the final page number
+  final_page_number <- page %>%
+    html_nodes(".search-result-pagination a[title='Final page']") %>% 
+    html_attr("href") %>% 
+    str_extract("p=\\d+") %>% 
+    str_remove("p=") %>% 
+    as.numeric()
+  
+  # Loop through all subsequent pages and extract titles and links
+  if (!is.na(final_page_number) && length(final_page_number) > 0&& final_page_number > 1) {
+    for (j in 2:final_page_number) {
+      next_link <- paste0(base_url, "/search/?q=", SearchTerms[i], "&from=", StartDate, "&to=", EndDate, "&p=", j)
+      print(next_link)
       
-      # Get all <p> elements with the class hs_Para within the current contribution
-      paragraphs <- contribution %>%
-        html_nodes('p.hs_Para') %>%
+      Sys.sleep(sample(3:4, 1))  # Random delay between 3 to 5 seconds
+      
+      # Error handling for subsequent pages
+      next_page <- tryCatch({
+        read_html(next_link)
+      }, error = function(e) {
+        message("Error accessing subsequent search page: ", next_link)
+        return(NULL)
+      })
+      
+      if (is.null(next_page)) next  # Skip to the next iteration if the page is NULL
+      
+      # Extract titles and links from the current page
+      titles <- next_page %>%
+        html_nodes(".search-result__title a") %>%
+        html_text()
+      
+      links <- next_page %>%
+        html_nodes(".search-result__title a") %>%
+        html_attr("href")
+      
+      # Append them to all_titles and all_links
+      all_titles <- c(all_titles, titles)
+      all_links <- c(all_links, links)
+    }
+  } else {
+    print("Only one page exists or final page number not found.")
+  }
+  
+  # Filter links to only include ones with the search term, European, Europe which are not
+  # Written answers.
+  filtered_links <- all_links[
+    grepl(paste(TitleTerms[i], "European", "Europe", sep="|"), all_titles, ignore.case = TRUE) & 
+      !grepl("Written Answer", all_titles, ignore.case = TRUE)
+  ]
+  
+  print(filtered_links)
+  
+  if (length(filtered_links) > 0){
+    for (link_debate in filtered_links){
+      Sys.sleep(sample(3:4,1))  # Random delay between 3 to 5 seconds
+      
+      # Find debate pages
+      debate_page <- tryCatch({
+        read_html(paste0(base_url,link_debate))
+      }, error = function(e) {
+        message("Error accessing debate page: ", link_debate)
+        return(NULL)
+      })
+      
+      if (is.null(debate_page)) next  # Skip to the next iteration if the page is NULL
+      
+      # Extract debate date
+      debate_date <- debate_page %>%
+        html_node("p.lead a") %>%
         html_text(trim = TRUE)
       
-      # Find the link to the member contributions page
-      member_link <- contribution %>%
-        html_node('a.attributed-to-details') %>%
-        html_attr('href')
+      # Extract the debate title
+      debate_title <- debate_page %>%
+        html_node("div.debate-header__content h1") %>%
+        html_text(trim = TRUE)
       
-      if (!is.na(member_link)) {
-        # Construct the full URL for the member page if necessary
-        member_url <- paste0(base_url, member_link)
-        # Read the member contributions page
-        member_page <- read_html(member_url)
+      # Extract debate speeches
+      speeches <- debate_page %>%
+        html_nodes(".debate-speech")
+      
+      # Loop through each speech node to extract the required information
+      for (speech in speeches) {
+        # Get the speech ID
+        speech_id <- speech %>% 
+          html_attr("id")
         
-        # Extract primary info and secondary info from the member page
-        primary_info <- member_page %>%
-          html_node('.primary-info') %>%
+        # Get the speaker's name
+        speaker_name <- speech %>%
+          html_node(".debate-speech__speaker .debate-speech__speaker__name") %>%
           html_text(trim = TRUE)
         
-        secondary_info <- member_page %>%
-          html_node('.secondary-info') %>%
+        # Get the speaker's position (if it exists)
+        speaker_party <- speech %>%
+          html_node(".debate-speech__speaker .debate-speech__speaker__position") %>%
           html_text(trim = TRUE)
         
-        # Store the results in the data frame with consistent data types
+        # Get the speech content
+        speech_content <- speech %>%
+          html_node(".debate-speech__content") %>%
+          html_text(trim = TRUE)
+        
         results_df <- results_df %>%
           add_row(
-            debate_id = debate_id,  # Integer type
+            speech_id = speech_id,  # Character type
             debate_date = debate_date,  # Character type
             debate_title = debate_title,  # Character type
-            contribution_id = as.character(contribution_id),  # Character type
-            paragraphs = paste(paragraphs, collapse = " "),  # Character type
-            primary_info = primary_info,  # Character type
-            secondary_info = secondary_info  # Character type
+            speech_content = speech_content,  # Character type
+            speaker_name = speaker_name,  # Character type
+            speaker_party = speaker_party  # Character type
           )
-      } else {
-        message(sprintf("No member link found for contribution ID: %s", contribution_id))
       }
     }
-  }, error = function(e) {
-    message(sprintf("Failed URL: %s. Error: %s", link, e$message))
-  })
-}
-# Print the results
-print(results_df)
-
-
-for(i in range(54)){
-  page <- str(links[i,1])
-  
-  print(page)
-}
-  page <- read_html("link")
-  # Extract all contributions
-  contributions <- page %>%
-    html_nodes('.contribution')
-  member_link <- contribution %>%
-    html_node('a.attributed-to-details') %>%
-    html_attr('href')
-  type(member_link)
-  
-  # Loop through each contribution
-  for (contribution in contributions) {
-    # Get the data-contribution-id
-    contribution_id <- contribution %>%
-      html_attr('data-contribution-id')
-    
-    # Get all <p> elements with the class hs_Para within the current contribution
-    paragraphs <- contribution %>%
-      html_nodes('p.hs_Para') %>%
-      html_text(trim = TRUE)
-    
-    # Find the link to the member contributions page
-    member_link <- contribution %>%
-      html_node('a.attributed-to-details') %>%
-      html_attr('href')
-    
-    if (!is.na(member_link)){
-      # Construct the full URL
-      member_url <- paste0(base_url, member_link)
-      # Read the member contributions page with a timeout
-      print(member_url)
-      tryCatch({
-      member_page <- read_html(member_url)
-        
-      # Extract primary info and secondary info from the member page
-      primary_info <- member_page %>%
-        html_node('.primary-info') %>%
-        html_text(trim = TRUE)
-        
-      secondary_info <- member_page %>%
-        html_node('.secondary-info') %>%
-        html_text(trim = TRUE)
-        
-      # Store the results in the data frame
-      results_df <- results_df %>%
-        add_row(
-          contribution_id = contribution_id,
-          paragraphs = paragraphs,
-          primary_info = primary_info,
-          secondary_info = secondary_info
-        )
-      }, error = function(e) {
-        message(sprintf("Failed URL: %s. Error: %s", member_url, e$message))
-      })
-      }
-    else {
-      message(sprintf("No member link found for contribution ID: %s", contribution_id))
-    }
+  } else{
+    print("No debate found for the specific topics.")
   }
 }
 
-install.packages("sentimentr")
-install.packages("tidytext")
+write.csv(results_df, "C:/Users/leonw/OneDrive - KU Leuven/2nd Semester/Collecting Big Data for Social Science/Final Assignment/Parliamentary_Debates.csv")
 
-library(tidytext)
-library(dplyr)
-library(sentimentr)
-
-# Perform sentiment analysis
-sentiment_scores <- sentiment(results_df$paragraphs)
-
-# Print sentiment scores
-print(sentiment_scores)
-
-results_df$paragraphs[3]
-
-
-# Split the text into sentences
-sentences <- get_sentences(results_df$paragraphs)
-
-text <- "I apologise, Mr Deputy Speaker.
-The Prime Minister is in step with the British public. A referendum is only right. The EU has fundamentally changed since we first joined in the early ’70s and it continues to change because of the eurozone crisis. The answer to the crisis from the eurozone capitals is more Europe—more political and economic integration. They have realised somewhat belatedly that they cannot have monetary union and save the euro without fiscal union, but that is not why we joined the EU. We joined for trade, not for politics.
-No one can deny that the EU’s role in our daily lives, which some would describe as meddling, has grown over the decades and continues to grow, and yet we have not stopped to ask the fundamental question of whether that is in our best interests. The timing of the referendum is sensible in that it allows for a renegotiation so we can know what the “in” part of the referendum question is. I wish the Prime Minister well—it will be a hard road because the direction of travel is in the other direction—but I hope he can renegotiate a looser agreement or arrangement with the EU that focuses on trade and not on politics. He might well be able to do so, which would appeal to a great number of people in this country. I hope he does more than Prime Minister Harold Wilson did in 1975. He claimed he had renegotiated and repatriated a lot of powers, but under close scrutiny, it appeared to be a thin claim—it did not amount to a tin of beans.
-Delaying the referendum a touch allows the eurozone crisis to play out and for a proper debate on the merit of membership. All in all, it is a sensible policy. It is right for the country. The British people will finally have their say, having been barred from having a genuine choice by the political establishment for probably more than 30 years, because all the main parties have looked in one direction.
-That is good news, and we welcome it, and yet the policy is dependent on a Conservative victory in the 2015 general election. The Prime Minister made his
-Toggle showing location of Column 321
-promise as leader of the Conservative party. Legislation will be introduced immediately after a Conservative victory, so this has become a party political issue. As such, many are concerned that there is deep public mistrust of politicians who make promises about EU referendums, because too many have been broken in the past. We question whether the promise will be believed.
-Many people remember Tony Blair’s promise on the EU constitution on the Lisbon treaty. We were promised a referendum and he failed to deliver. Instead, the EU constitution was copied and pasted into the Lisbon treaty and rammed through the House using the Labour Government’s majority. Even Gordon Brown knew"
-
-data <- data.frame(text = text, stringsAsFactors = FALSE)
-
-# Split the text into sentences
-sentences <- get_sentences(data$text)
-# Filter sentences mentioning the EU
-eu_sentences <- sentences[grepl("EU", sentences)]
-eu_sentences_df <- data.frame(sentence = eu_sentences, stringsAsFactors = FALSE)
-# Perform sentiment analysis on EU sentences
-eu_sentiment_scores <- sentiment(eu_sentences_df$c..I.apologise..Mr.Deputy.Speaker.....The.Prime.Minister.is.in.step.with.the.British.public....)
-
-# Print EU sentiment scores
-print(eu_sentiment_scores)
