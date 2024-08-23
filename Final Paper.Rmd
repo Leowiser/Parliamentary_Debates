@@ -48,10 +48,11 @@ The data we gather include all debates between 27.06.2007 until the 19.08.2024. 
 ###          THIS NEEDS AT LEAST 5 HOURS to RUN!!!          ### 
 ###############################################################
 
-# install necesary packages
+# Set working directory
+setwd("C:/Users/LENOVO/Desktop/iskola stuff/mester stuff/Collecting and Analyzing Big Data for Social Sciences/Group Project")
 
-install.packages(c("tidyverse", 
-                   "httr", "glue", "dplyr", "stringr"))
+# load necessary packages
+# install.packages(c("tidyverse", "httr", "glue", "dplyr", "stringr"))
 library(dplyr)
 library("tidyverse")
 library("httr")
@@ -232,7 +233,7 @@ for (i in seq_along(SearchTerms)) {
   }
 }
 
-write.csv(results_df, "C:/Users/leonw/OneDrive - KU Leuven/2nd Semester/Collecting Big Data for Social Science/Final Assignment/Parliamentary_Debates.csv")
+write.csv(results_df, 'Parliamentary_Debates.csv')
 ```
 
 ### Ethical considerations
@@ -261,7 +262,7 @@ library(dplyr)
 ```
 
 ```{r}
-df_result = read.csv("C:/Users/leonw/OneDrive - KU Leuven/2nd Semester/Collecting Big Data for Social Science/Final Assignment/Parliamentary_Debates.csv", row.names = 1)
+df_result = read.csv('Parliamentary_Debates.csv', row.names = 1)
 
 # Delete all the duplicates
 df_clean <- distinct(df_result)
