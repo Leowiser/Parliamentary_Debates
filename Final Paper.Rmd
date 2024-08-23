@@ -259,6 +259,7 @@ library(readxl)
 library(tm)
 library(tidytext)
 library(dplyr)
+library(lubridate)    # for date conversion in data cleaning
 ```
 
 ```{r}
@@ -269,11 +270,49 @@ df_clean <- distinct(df_result)
 
 n_distinct(df_clean$speech_id)
 n_distinct(df_clean$speech_content)
+
+# Format the debate_date column so that it contains dates not character strings
+df_clean$debate_date <- dmy(df_clean$debate_date)
 ```
 
 
 ## Sentiments
+```{r}
+poswords = "https://cssbook.net/d/positive.txt"
+negwords = "https://cssbook.net/d/negative.txt"
 
+pos = scan(poswords, what = "list")
+neg = scan(negwords, what = "list")
+
+sentimentdict = dictionary(list(pos = pos, neg = neg))
+
+# Need to rename the column of the speeches to 'text' because the corpus() function from the following code needs that naming convention
+names(df_clean)[names(df_clean) == "speech_content"] <- "text"
+
+# Match and calculate the sentiments
+sentiment_speech = df_clean %>% 
+  corpus() %>% 
+  tokens() %>% 
+  dfm() %>% 
+  dfm_lookup(sentimentdict) %>% 
+  convert(to = "data.frame") %>%
+  mutate(sent = pos-neg)
+
+df_clean <- cbind(df_clean, sentiment_speech[,-1])
+
+df_clean %>% 
+  group_by(debate_title) %>% 
+  summarise(mean_sent = mean(sent)) %>%
+  ggplot(aes(x = mean_sent, y = debate_title)) +
+  geom_bar(stat = "identity", fill = 'steelblue') +
+  theme_minimal()
+
+# This is probably incorrect, would need grouping like before imo
+ggplot(df_clean, aes(x = debate_date, y = sent)) +
+  geom_line(color='steelblue') +
+  xlab("Year") +
+  theme_minimal()
+```
 ## References
 
 House of Commons Library. (2016). *Analysis of the EU Referendum results 2016*. <https://commonslibrary.parliament.uk/research-briefings/cbp-7639/>. Accessed 21.08.2024
