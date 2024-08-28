@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2024-08-22" />
+<meta name="date" content="2024-08-28" />
 
 <title>Britain_on_Europe</title>
 
@@ -1621,7 +1621,7 @@ display: none;
 
 
 <h1 class="title toc-ignore">Britain_on_Europe</h1>
-<h4 class="date">2024-08-22</h4>
+<h4 class="date">2024-08-28</h4>
 
 </div>
 
@@ -1674,19 +1674,6 @@ Brexit or withdrawl from the EU?</p></li>
 <li><p>Is there a visible difference depending on the current majorities
 in parliament?</p></li>
 </ul>
-<p>Research question: How did the sentiment in debates about EU topics
-changed over time in the house of commons?</p>
-<ul>
-<li><p>Difference between general EU topics and Topics that are directly
-connected to Brexit/withdrawl? o Compare against all of it. Is there a
-difference.</p></li>
-<li><p>How did the majorities in the British parliament changed the
-sentiment?</p></li>
-<li><p>Does this mirror the local populations sentiment?</p></li>
-</ul>
-</div>
-<div id="ethics" class="section level2">
-<h2>Ethics</h2>
 </div>
 <div id="data" class="section level2">
 <h2>Data</h2>
@@ -1721,10 +1708,11 @@ in a data frame representing 13,831 different debates.</p>
 ###          THIS NEEDS AT LEAST 5 HOURS to RUN!!!          ### 
 ###############################################################
 
-# install necesary packages
+# Set working directory
+setwd(&quot;C:/Users/LENOVO/Desktop/iskola stuff/mester stuff/Collecting and Analyzing Big Data for Social Sciences/Group Project&quot;)
 
-install.packages(c(&quot;tidyverse&quot;, 
-                   &quot;httr&quot;, &quot;glue&quot;, &quot;dplyr&quot;, &quot;stringr&quot;))
+# load necessary packages
+# install.packages(c(&quot;tidyverse&quot;, &quot;httr&quot;, &quot;glue&quot;, &quot;dplyr&quot;, &quot;stringr&quot;))
 library(dplyr)
 library(&quot;tidyverse&quot;)
 library(&quot;httr&quot;)
@@ -1905,7 +1893,7 @@ for (i in seq_along(SearchTerms)) {
   }
 }
 
-write.csv(results_df, &quot;C:/Users/leonw/OneDrive - KU Leuven/2nd Semester/Collecting Big Data for Social Science/Final Assignment/Parliamentary_Debates.csv&quot;)</code></pre>
+write.csv(results_df, &#39;Parliamentary_Debates.csv&#39;)</code></pre>
 </div>
 <div id="ethical-considerations" class="section level3">
 <h3>Ethical considerations</h3>
@@ -1937,19 +1925,72 @@ library(&quot;topicmodels&quot;)
 library(readxl)
 library(tm)
 library(tidytext)
-library(dplyr)</code></pre>
-<pre class="r"><code>df_result = read.csv(&quot;C:/Users/leonw/OneDrive - KU Leuven/2nd Semester/Collecting Big Data for Social Science/Final Assignment/Parliamentary_Debates.csv&quot;, row.names = 1)
+library(dplyr)
+library(lubridate)    # for date conversion in data cleaning</code></pre>
+<p>We do not have duplicates in the data as a whole, every row is
+unique. There are duplicate speeches though, the content of two speeches
+can be the same (e.g. if they were said by a different speaker or at a
+different time). Examples of such cases are “Will the Minister give
+way?”, “Will the hon. Gentleman give way?”, a simple “I will.” or “No.”,
+etc. - they are common expressions often said in parliamentary debates
+so the duplicates are not results of an error in the scraping or the
+structure of the data, and are valid. While checking the duplicate
+speeches we also notice some empty ones - since they carry no
+information regarding our analysis, we delete them. Finally a
+technicality, the dates of the debates were actually stored as character
+strings in R, but for our analysis we need them as dates, so we convert
+them.</p>
+<pre class="r"><code>df_debates = read.csv(&#39;Parliamentary_Debates_combined.csv&#39;, row.names = 1)
 
-# Delete all the duplicates
-df_clean &lt;- distinct(df_result)
+# Checking for duplicates
+nrow(df_debates)
+nrow(df_debates) == n_distinct(df_debates)
 
-n_distinct(df_clean$speech_id)</code></pre>
-<pre><code>## [1] 13831</code></pre>
-<pre class="r"><code>n_distinct(df_clean$speech_content)</code></pre>
-<pre><code>## [1] 22881</code></pre>
+n_distinct(df_debates$speech_id)
+n_distinct(df_debates$speech_content)
+
+# Delete empty (NA) speeches
+df_clean &lt;- df_debates[complete.cases(df_debates$speech_content), ]
+
+# Format the debate_date column so that it contains dates not character strings
+df_clean$debate_date &lt;- dmy(df_clean$debate_date)</code></pre>
 </div>
 <div id="sentiments" class="section level2">
 <h2>Sentiments</h2>
+<pre class="r"><code>poswords = &quot;https://cssbook.net/d/positive.txt&quot;
+negwords = &quot;https://cssbook.net/d/negative.txt&quot;
+
+pos = scan(poswords, what = &quot;list&quot;)
+neg = scan(negwords, what = &quot;list&quot;)
+
+sentimentdict = dictionary(list(pos = pos, neg = neg))
+
+# Need to rename the column of the speeches to &#39;text&#39; because the corpus() function from the following code needs that naming convention
+names(df_clean)[names(df_clean) == &quot;speech_content&quot;] &lt;- &quot;text&quot;
+
+# Match and calculate the sentiments
+sentiment_speech = df_clean %&gt;% 
+  corpus() %&gt;% 
+  tokens() %&gt;% 
+  dfm() %&gt;% 
+  dfm_lookup(sentimentdict) %&gt;% 
+  convert(to = &quot;data.frame&quot;) %&gt;%
+  mutate(sent = pos-neg)
+
+df_clean &lt;- cbind(df_clean, sentiment_speech[,-1])
+
+df_clean %&gt;% 
+  group_by(debate_title) %&gt;% 
+  summarise(mean_sent = mean(sent)) %&gt;%
+  ggplot(aes(x = mean_sent, y = debate_title)) +
+  geom_bar(stat = &quot;identity&quot;, fill = &#39;steelblue&#39;) +
+  theme_minimal()
+
+# This is probably incorrect, would need grouping like before imo
+ggplot(df_clean, aes(x = debate_date, y = sent)) +
+  geom_line(color=&#39;steelblue&#39;) +
+  xlab(&quot;Year&quot;) +
+  theme_minimal()</code></pre>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>

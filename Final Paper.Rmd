@@ -240,7 +240,7 @@ write.csv(results_df, 'Parliamentary_Debates.csv')
 Web scrapping websites always comes with certain ethical considerations. Checking the robots.txt of the websites shows that it is legal to scrape the debates in the house of commons. Despite the legal considerations sustainable approaches were used to scrape the data. First of all scraping was conducted during the night to avoid overloading the page in times when it is frequently used. Second a waiting time between 3 and 4 seconds was chosen before scraping to ensure not to burden the webpage to much.
 
 ## Data cleaning
-```{r, message=FALSE}
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 
 library("tidyverse")
 library("httr")
@@ -262,14 +262,20 @@ library(dplyr)
 library(lubridate)    # for date conversion in data cleaning
 ```
 
-```{r}
-df_result = read.csv('Parliamentary_Debates.csv', row.names = 1)
+We do not have duplicates in the data as a whole, every row is unique. There are duplicate speeches though, the content of two speeches can be the same (e.g. if they were said by a different speaker or at a different time). Examples of such cases are "Will the Minister give way?", "Will the hon. Gentleman give way?", a simple "I will." or "No.", etc. - they are common expressions often said in parliamentary debates so the duplicates are not results of an error in the scraping or the structure of the data, and are valid. While checking the duplicate speeches we also notice some empty ones - since they carry no information regarding our analysis, we delete them. Finally a technicality, the dates of the debates were actually stored as character strings in R, but for our analysis we need them as dates, so we convert them. 
 
-# Delete all the duplicates
-df_clean <- distinct(df_result)
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+df_debates = read.csv('Parliamentary_Debates_combined.csv', row.names = 1)
 
-n_distinct(df_clean$speech_id)
-n_distinct(df_clean$speech_content)
+# Checking for duplicates
+nrow(df_debates)
+nrow(df_debates) == n_distinct(df_debates)
+
+n_distinct(df_debates$speech_id)
+n_distinct(df_debates$speech_content)
+
+# Delete empty (NA) speeches
+df_clean <- df_debates[complete.cases(df_debates$speech_content), ]
 
 # Format the debate_date column so that it contains dates not character strings
 df_clean$debate_date <- dmy(df_clean$debate_date)
@@ -277,7 +283,7 @@ df_clean$debate_date <- dmy(df_clean$debate_date)
 
 
 ## Sentiments
-```{r}
+```{r, eval = FALSE}
 poswords = "https://cssbook.net/d/positive.txt"
 negwords = "https://cssbook.net/d/negative.txt"
 
