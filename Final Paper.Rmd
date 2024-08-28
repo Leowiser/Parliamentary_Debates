@@ -283,6 +283,7 @@ df_clean$debate_date <- dmy(df_clean$debate_date)
 
 
 ## Sentiments
+Sentiment analysis is a technique used to determine the emotional tone (positive, negative or neutral) of a digital text, in our case parliamental speeches. For most cases, it is conducted by a rule-based or a machine learning approach. While the latter can be used to understand more complex and interesting concepts, it nowadays often utilizes deep learning and other complex methods that go beyond the concepts learned in the course and the purpose of this project. Thus, while we acknowledge that determining the sentiment of a text (speech) is also not a simple task, we will use the rule-based (or dictionary based) approach with a custom lexicon created from a corpus of parliamentary debates (Rheault et al. 2016). Using a domain-specific sentiment dictionary is important because lexicons attuned on different domains than the ones they are used for often perform poorly in sentiment analysis tasks.
 ```{r, eval = FALSE}
 poswords = "https://cssbook.net/d/positive.txt"
 negwords = "https://cssbook.net/d/negative.txt"
@@ -325,6 +326,8 @@ House of Commons Library. (2016). *Analysis of the EU Referendum results 2016*. 
 
 Public Administration and Constitutional Affairs Committee. (2017). Lessons Learned from
 the EU Referendum (Twelth Report of Session 2016-17). *House of Commons*.
+
+Rheault, L., Beelen, K., Cochrane, C., & Hirst, G. (2016). Measuring emotion in parliamentary debates with automated textual analysis. *PLoS ONE*, 11(12). https://doi.org/10.1371/journal.pone.0168843
 
 Russell, M. (2021). Brexit and Parliament: The Anatomy of a Perfect Storm. *Parliamentary Affairs*, 74, 443-463  
 

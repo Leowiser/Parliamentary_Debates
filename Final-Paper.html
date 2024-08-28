@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2024-08-28" />
+<meta name="date" content="2024-08-29" />
 
 <title>Britain_on_Europe</title>
 
@@ -1621,7 +1621,7 @@ display: none;
 
 
 <h1 class="title toc-ignore">Britain_on_Europe</h1>
-<h4 class="date">2024-08-28</h4>
+<h4 class="date">2024-08-29</h4>
 
 </div>
 
@@ -1957,6 +1957,19 @@ df_clean$debate_date &lt;- dmy(df_clean$debate_date)</code></pre>
 </div>
 <div id="sentiments" class="section level2">
 <h2>Sentiments</h2>
+<p>Sentiment analysis is a technique used to determine the emotional
+tone (positive, negative or neutral) of a digital text, in our case
+parliamental speeches. For most cases, it is conducted by a rule-based
+or a machine learning approach. While the latter can be used to
+understand more complex and interesting concepts, it nowadays often
+utilizes deep learning and other complex methods that go beyond the
+concepts learned in the course and the purpose of this project. Thus,
+while we acknowledge that determining the sentiment of a text (speech)
+is also not a simple task, we will use the rule-based (or dictionary
+based) approach with a custom lexicon created from a corpus of
+parliamentary debates (Rheault et al. 2016). Using a domain-specific
+sentiment dictionary is important because lexicons attuned on different
+domains often perform poorly in sentiment analysis tasks.</p>
 <pre class="r"><code>poswords = &quot;https://cssbook.net/d/positive.txt&quot;
 negwords = &quot;https://cssbook.net/d/negative.txt&quot;
 
@@ -2000,6 +2013,9 @@ Accessed 21.08.2024</p>
 <p>Public Administration and Constitutional Affairs Committee. (2017).
 Lessons Learned from the EU Referendum (Twelth Report of Session
 2016-17). <em>House of Commons</em>.</p>
+<p>Rheault, L., Beelen, K., Cochrane, C., &amp; Hirst, G. (2016).
+Measuring emotion in parliamentary debates with automated textual
+analysis. <em>PLoS ONE</em>, 11(12). <a href="https://doi.org/10.1371/journal.pone.0168843" class="uri">https://doi.org/10.1371/journal.pone.0168843</a></p>
 <p>Russell, M. (2021). Brexit and Parliament: The Anatomy of a Perfect
 Storm. <em>Parliamentary Affairs</em>, 74, 443-463</p>
 <p>UK Parliament. <em>Parliamentary Sovereignty</em>. <a href="https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/" class="uri">https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/</a>.
