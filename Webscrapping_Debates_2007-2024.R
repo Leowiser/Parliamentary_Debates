@@ -58,9 +58,14 @@ for (i in seq_along(SearchTerms)) {
     html_nodes(".search-result__title a") %>%  # Adjust the CSS selector if needed
     html_attr("href")
   
+  # Filter links that start with "/debates"
+  debate_links <- links[grep("^/debates", links)]
+  
+  clean_link <- gsub("#.*$", "", links)
+  
   # Combine them with all_titles and all_links
   all_titles <- c(all_titles, titles)
-  all_links <- c(all_links, links)
+  all_links <- c(all_links, clean_link)
   
   # Get the final page number
   final_page_number <- page %>%
@@ -97,9 +102,11 @@ for (i in seq_along(SearchTerms)) {
         html_nodes(".search-result__title a") %>%
         html_attr("href")
       
+      clean_link <- gsub("#.*$", "", links)
+      
       # Append them to all_titles and all_links
       all_titles <- c(all_titles, titles)
-      all_links <- c(all_links, links)
+      all_links <- c(all_links, clean_link)
     }
   } else {
     print("Only one page exists or final page number not found.")
@@ -178,6 +185,10 @@ for (i in seq_along(SearchTerms)) {
     print("No debate found for the specific topics.")
   }
 }
+
+
+
+print(all_links)
 
 write.csv(results_df, "C:/Users/leonw/OneDrive - KU Leuven/2nd Semester/Collecting Big Data for Social Science/Final Assignment/Parliamentary_Debates.csv")
 
