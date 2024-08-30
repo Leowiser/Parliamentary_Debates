@@ -429,7 +429,6 @@ df_clean$debate_date <- dmy(df_clean$debate_date)
 names(df_clean)[names(df_clean) == "speech_content"] <- "text"
 ```
 
-
 ## Sentiments
 Sentiment analysis is a technique used to determine the emotional tone (positive, negative or neutral) of a digital text, in our case parliamental speeches. For most cases, it is conducted by a rule-based or a machine learning approach. While the latter can be used to understand more complex and interesting concepts, it nowadays often utilizes deep learning and other complex methods that go beyond the concepts learned in the course and the purpose of this project. Thus, while we acknowledge that determining the sentiment of a text (speech) is also not a simple task, we will use the rule-based (or dictionary based) approach with a custom lexicon created from a corpus of parliamentary debates (**in UK etc.**) by Rheault et al. (2016). Using a domain-specific sentiment dictionary is important because lexicons attuned on different domains than the ones they are used for often perform poorly in sentiment analysis tasks.
 
@@ -449,6 +448,10 @@ Both methods require to understand the meaning of the words not just by themselv
 
 While stop word removal is a common pre-processing step in text analysis, they in fact help the model better understand the context of a word so we do not remove them and apply the pre-trained model on our raw texts (speeches). While several pre-trained models can be found on the internet, we will use UDPipe (Wijffels 2021) which seemed to be one of the most popular. To make sure it is adequate for our needs, we validate the lemmatization and POS tagging on a subset of speeches manually and also compare it to another package especially famous in the Python community, SpaCy (Benoit and Matsuo 2023).
 ```{r, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+###############################################################
+###          THIS NEEDS AT LEAST 2 HOURS to RUN!!!          ### 
+###############################################################
+
 # Download English model - enough to do once
 # m_eng <- udpipe_download_model(language = "english-ewt")
 
@@ -595,7 +598,8 @@ pblue <- "#3F5F75"
 # Visualize the sentiment by date
 df_clean %>% 
   group_by(debate_date) %>% 
-  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0, sum(sentiment_sum)/sum(sentiment_count))) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
   mutate(sentismooth = smooth.spline(average_sentiment, spar = 0.5)$y) %>%
   ggplot(aes(x = debate_date)) +
   geom_line(aes(y = average_sentiment), size = .1, colour=pblue) +
@@ -608,7 +612,8 @@ df_clean %>%
 # Visualize the sentiment by date - standardized data, as in paper
 df_clean %>% 
   group_by(debate_date) %>% 
-  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0, sum(sentiment_sum)/sum(sentiment_count))) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
   mutate(standardized_sentiment = scale(average_sentiment),
          sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>%
   ggplot(aes(x = debate_date)) +
@@ -624,7 +629,8 @@ df_clean %>%
 df_clean %>% 
   mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
   group_by(quarter) %>%
-  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0, sum(sentiment_sum) / sum(sentiment_count))) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum) / sum(sentiment_count))) %>%
   mutate(standardized_sentiment = scale(average_sentiment), 
          sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>% 
   mutate(quarter = factor(quarter, levels = unique(quarter))) %>% 
@@ -640,7 +646,8 @@ df_clean %>%
 # Visualize the sentiment by year - standardized data, as in paper
 df_clean %>% 
   group_by(year) %>%
-  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0, sum(sentiment_sum) / sum(sentiment_count))) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum) / sum(sentiment_count))) %>%
   mutate(standardized_sentiment = scale(average_sentiment), 
          sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>% 
   ggplot(aes(x = year, group = 1)) +
@@ -653,6 +660,10 @@ df_clean %>%
   theme_minimal()
 
 ```
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+
+```
+
 ## References
 
 Benoit, K., & Matsuo, A. (2023). spacyr: Wrapper to the 'spaCy' 'NLP' Library. https://CRAN.R-project.org/package=spacyr

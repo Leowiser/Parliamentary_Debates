@@ -261,3 +261,63 @@ df_clean %>%
   ylab('Emotional Polarity') +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+
+
+
+# Visualize the sentiment by date
+df_clean %>% 
+  group_by(debate_date, Party) %>% 
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
+  pivot_wider(names_from = Party, values_from = average_sentiment) %>%
+  select(-'NA') %>%
+  mutate(across(everything(), ~replace_na(., 0))) %>%
+  ungroup() %>% 
+  mutate(sentismooth_conservative = smooth.spline(Conservative, spar = 0.5)$y,
+         sentismooth_labour = smooth.spline(Labour, spar = 0.5)$y,
+         sentismooth_speaker = smooth.spline(Speaker, spar = 0.5)$y) %>%
+  ggplot(aes(x = debate_date)) +
+  geom_line(aes(y = Conservative), size = .1, colour="#3F5F75") +
+  geom_point(aes(y = Conservative), size = 6, colour="#3F5F75", shape=1, stroke=.25) +
+  geom_line(aes(y = Labour), size = .1, colour="#3FA8C3") +
+  geom_point(aes(y = Labour), size = 6, colour="#3FA8C3", shape=1, stroke=.25) +
+  geom_line(aes(y = Speaker), size = .1, colour="orange") +
+  geom_point(aes(y = Speaker), size = 6, colour="orange", shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_conservative), size = 2, colour="#3F5F75") +
+  geom_line(aes(y = sentismooth_labour), size = 2, colour="#3FA8C3") +
+  geom_line(aes(y = sentismooth_speaker), size = 2, colour="orange") +
+  xlab("Date") +
+  ylab('Emotional Polarity') +
+  theme_minimal()
+  
+  
+df_clean %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter, Party) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
+  pivot_wider(names_from = Party, values_from = average_sentiment) %>% 
+  select(-'NA') %>%
+  mutate(across(everything(), ~replace_na(., 0))) %>%
+  ungroup() %>%
+  mutate(sentismooth_conservative = smooth.spline(Conservative, spar = 0.5)$y,
+         sentismooth_labour = smooth.spline(Labour, spar = 0.5)$y,
+         sentismooth_speaker = smooth.spline(Speaker, spar = 0.5)$y) %>%
+  mutate(quarter = factor(quarter, levels = unique(quarter))) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = Conservative), size = .1, colour="#3F5F75") +
+  geom_point(aes(y = Conservative), size = 6, colour="#3F5F75", shape=1, stroke=.25) +
+  geom_line(aes(y = Labour), size = .1, colour="#3FA8C3") +
+  geom_point(aes(y = Labour), size = 6, colour="#3FA8C3", shape=1, stroke=.25) +
+  geom_line(aes(y = Speaker), size = .1, colour="orange") +
+  geom_point(aes(y = Speaker), size = 6, colour="orange", shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_conservative), size = 2, colour="#3F5F75") +
+  geom_line(aes(y = sentismooth_labour), size = 2, colour="#3FA8C3") +
+  geom_line(aes(y = sentismooth_speaker), size = 2, colour="orange") +
+  xlab("Date") +
+  ylab('Emotional Polarity') +
+  theme_minimal()
