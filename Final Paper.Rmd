@@ -284,7 +284,7 @@ write.csv(df_clean, "Parliamentary_Debates_Combined.csv")
 Web scrapping websites always comes with certain ethical considerations. Checking the robots.txt of the websites shows that it is legal to scrape the debates in the house of commons. Despite the legal considerations sustainable approaches were used to scrape the data. First of all scraping was conducted during the night to avoid overloading the page in times when it is frequently used. Second a waiting time between 3 and 4 seconds was chosen before scraping to ensure not to burden the webpage to much.
 
 ## Data cleaning
-```{r, message=FALSE}
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 
 library("tidyverse")
 library("httr")
@@ -304,15 +304,19 @@ library(tm)
 library(tidytext)
 library(dplyr)
 library(lubridate)    # for date conversion in data cleaning
+library(udpipe)    # for POS tagging
+library(spacyr)    # for POS tagging
+library(writexl)    # to write xlsx
 ```
+**THIS WAS LEFT HERE FROM ADAM - NEEDS TO CHANGE**
+We do not have duplicates in the data as a whole, every row is unique. There are duplicate speeches though, the content of two speeches can be the same (e.g. if they were said by a different speaker or at a different time). Examples of such cases are "Will the Minister give way?", "Will the hon. Gentleman give way?", a simple "I will." or "No.", etc. - they are common expressions often said in parliamentary debates so the duplicates are not results of an error in the scraping or the structure of the data, and are valid. While checking the duplicate speeches we also notice some empty ones - since they carry no information regarding our analysis, we delete them. Finally a technicality, the dates of the debates were actually stored as character strings in R, but for our analysis we need them as dates, so we convert them. 
 
-```{r}
-
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 #############################
 ###     Data Cleaning     ### 
 #############################
 
-# Upload the web scraped data
+# Load the web scraped data
 df_Debates = read.csv("Parliamentary_Debates_Combined.csv", row.names = 1)
 
 # Delete all duplicated rows
@@ -418,53 +422,261 @@ table(df_clean$Party)
 # Delete the phrase "I beg to move" as it is mandatory at the beginning of every debate
 df_clean$speech_content <- sub("^I beg to move","",df_clean$speech_content)
 
-```
+# Format the debate_date column so that it contains dates not character strings
+df_clean$debate_date <- dmy(df_clean$debate_date)
 
+# A later function needs the speeches to be in a column called 'text' se we rename it
+names(df_clean)[names(df_clean) == "speech_content"] <- "text"
+```
 
 ## Sentiments
-```{r}
-poswords = "https://cssbook.net/d/positive.txt"
-negwords = "https://cssbook.net/d/negative.txt"
+Sentiment analysis is a technique used to determine the emotional tone (positive, negative or neutral) of a digital text, in our case parliamental speeches. For most cases, it is conducted by a rule-based or a machine learning approach. While the latter can be used to understand more complex and interesting concepts, it nowadays often utilizes deep learning and other complex methods that go beyond the concepts learned in the course and the purpose of this project. Thus, while we acknowledge that determining the sentiment of a text (speech) is also not a simple task, we will use the rule-based (or dictionary based) approach with a custom lexicon created from a corpus of parliamentary debates (**in UK etc.**) by Rheault et al. (2016). Using a domain-specific sentiment dictionary is important because lexicons attuned on different domains than the ones they are used for often perform poorly in sentiment analysis tasks.
 
-pos = scan(poswords, what = "list")
-neg = scan(negwords, what = "list")
+We inspect the first few rows of the sentiment lexicon (available on the authors' [GitHub repository](https://github.com/lrheault/emotion?tab=readme-ov-file)) in Table (**reference**) and see that the sentiments are not simply assigned to words (to be more specific, lemmas) but to the combination of lemmas and their Part-of-Speech (POS) tag. While other popular dictionaries [**Maybe reference a few here? or later?**] often match sentiments only to the words, we see that this approach is already more sophisticated - Combining it with the fact that the lexicon was constructed from political texts, we can be hopeful that our method will capture the real sentiment of the speeches better. Rheault et al. (2016) refer to sentiment as "emotional polarity", hence the column 'polarity' in the table below, but they can be used interchangeably. The dictionary contains sentiments for 4200 words (lemmas) in the range of [-1, 1], -1 being most negative and 1 being most positive with an equal number of positive and negative sentiments (2100-2100). For more details about how the lexicon was constructed and polarities assigned, we refer to the original paper (**reference it again?**).
+```{r sentiment-table, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+# Load the lexicon from Rheault et al. (2016)
+sentiment_lexicon <- read.csv("lexicon-polarity.csv")
 
-sentimentdict = dictionary(list(pos = pos, neg = neg))
+# Remove irrelevant column
+sentiment_lexicon %>% select(-seed) -> sentiment_lexicon
 
-# Need to rename the column of the speeches to 'text' because the corpus() function from the following code needs that naming convention
-names(df_clean)[names(df_clean) == "speech_content"] <- "text"
-
-# Match and calculate the sentiments
-sentiment_speech = df_clean %>% 
-  corpus() %>% 
-  tokens() %>% 
-  dfm() %>% 
-  dfm_lookup(sentimentdict) %>% 
-  convert(to = "data.frame") %>%
-  mutate(sent = pos-neg)
-
-df_clean <- cbind(df_clean, sentiment_speech[,-1])
-
-df_clean %>% 
-  group_by(debate_title) %>% 
-  summarise(mean_sent = mean(sent)) %>%
-  ggplot(aes(x = mean_sent, y = debate_title)) +
-  geom_bar(stat = "identity", fill = 'steelblue') +
-  theme_minimal()
-
-# This is probably incorrect, would need grouping like before imo
-ggplot(df_clean, aes(x = debate_date, y = sent)) +
-  geom_line(color='steelblue') +
-  xlab("Year") +
-  theme_minimal()
+knitr::kable(head(sentiment_lexicon), caption = "Observations form the lexicon of Rheault et al. (2016)")
 ```
+Lemmatization is the process of finding the root (called lemma) of a word and is useful in computational linguistics because by analyzing various inflected forms of a word as a single item, text processing models can equate morphologically related words. POS tagging learns the linguistic category (noun/verb/adverb/etc.) of a word (called part of speech) and assigns it to the token. It is useful since the same word can have different meanings in different contexts (and thus, also different sentiments). In fact, the previously introduced dictionary we use indeed contains countless examples of the same lemma with different POS tags and sentiments.
+
+Both methods require to understand the meaning of the words not just by themselves, but also within the larger context of the surrounding sentence, or even the whole document. This is not an easy task, and is often done by machine learning algorithms or nowadays deep learning. Our purpose with this project is not to train a lemmatizer and POS tagger model on our own corpora, so we will use a pre-trained one.
+
+While stop word removal is a common pre-processing step in text analysis, they in fact help the model better understand the context of a word so we do not remove them and apply the pre-trained model on our raw texts (speeches). While several pre-trained models can be found on the internet, we will use UDPipe (Wijffels 2021) which seemed to be one of the most popular. To make sure it is adequate for our needs, we validate the lemmatization and POS tagging on a subset of speeches manually and also compare it to another package especially famous in the Python community, SpaCy (Benoit and Matsuo 2023).
+```{r, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+###############################################################
+###          THIS NEEDS AT LEAST 2 HOURS to RUN!!!          ### 
+###############################################################
+
+# Download English model - enough to do once
+# m_eng <- udpipe_download_model(language = "english-ewt")
+
+# Load model from path
+m_eng_loaded <- udpipe_load_model(file = "english-ewt-ud-2.5-191206.udpipe")
+
+# Lemmatize and POS tag speeches - BEWARE: code runs for at least 2 hours
+pos <- udpipe_annotate(m_eng_loaded, x = df_clean$text) %>% 
+  as.data.frame()
+
+# Save data frame for later use
+save(pos, file = "pos.RData")
+```
+We validate the performance of the lemmatizer and POS tagger by taking a random sample of speeches, conducting lemmatization and POS tagging manually on each token by ourselves and comparing them with those obtained by the pre-trained models of UDPipe and SpaCy.
+
+[Discuss validation results here]
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Load the POS tagged data and model
+load("pos.RData")
+m_eng_loaded <- udpipe_load_model(file = "english-ewt-ud-2.5-191206.udpipe")
+
+# Sample 100 speeches
+set.seed(123)    #For reproducibility
+sampled_speeches <- df_clean %>% sample_n(100)
+
+# Lemmatize and POS tag with UDPipe
+pos_validation_UDPipe <- udpipe_annotate(m_eng_loaded, x = sampled_speeches$text) %>%
+  as.data.frame()
+
+# Lemmatize and POS tag with Spacyr
+spacy_initialize(model = "en_core_web_sm")
+pos_validation_spacy <- spacy_parse(sampled_speeches$text, lemma = TRUE, pos = TRUE, tag = TRUE)
+
+# Save files for easier manual validation in Excel
+pos_validation_UDPipe %>% write_xlsx("pos_validation_UDPipe.xlsx")
+pos_validation_spacy %>% write_xlsx("pos_validation_spacy.xlsx")
+```
+As the following lines shows, the POS tags form UDPipe are different from those in the sentiment dictionary. In the next step, we need to create a mapping between them.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+unique(pos$upos)
+unique(sentiment_lexicon$pos1)
+```
+Based on the information in the table below, we map the POS tags in the sentiment lexicon to the tags in UDPipe, so that later we can match the sentiments based on them to our data.
+```{r, echo=FALSE}
+# Mapping table
+maptable <- data.frame(
+  "UDPipe POS" = c("NOUN", "VERB", "PUNCT", "CCONJ", "NUM", "SCONJ", "DET", 
+                 "ADP", "ADJ", "PROPN", "PART", "ADV", "AUX", "PRON", 
+                 "INTJ", "SYM", "X"),
+  "Description" = c("Noun", "Verb", "Punctuation", "Coordinating conjunction", "Numeral",
+                    "Subordinating conjunction", "Determiner", "Adposition", "Adjective",
+                    "Proper noun", "Particle", "Adverb", "Auxiliary", "Pronoun",
+                    "Interjection", "Symbol", "Other"),
+  "Example tokens" = c("team, access, support", "commend, welcome, provide", ". , ()",
+                       "and, or, but", "2020, two", "that, while, if, as", "a, the, what",
+                       "in, to, by, with", "delighted, warm, flexible", "Member, House, European",
+                       "'s, not, to", "certainly, very, preferably", "can, have, am",
+                       "I, he, she, anyone", "yes, no, psst", "%, $, £", ""),
+  "Sentiment lexicon POS" = c("n", "v", "", "", "", "", "",
+                                  "", "a", "", "", "r", "", "",
+                                  "u", "", ""),
+  "Action" = c("change POS in lexicon: n --> NOUN", "change POS in lexicon: v --> VERB", "", "",
+               "", "", "", "", "change POS in lexicon: a --> ADJ", "", "",
+               "change POS in lexicon: r --> ADV", "", "", "change POS in lexicon: u --> INTJ",
+               "", ""),
+  check.names = FALSE
+)
+
+knitr::kable(maptable, caption = "Mapping table of POS tags")
+```
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Mapping POS tags
+sentiment_lexicon %>%
+  mutate(pos1 = case_when(pos1 == 'n' ~ 'NOUN',
+                          pos1 == 'v' ~ 'VERB',
+                          pos1 == 'a' ~ 'ADJ',
+                          pos1 == 'r' ~ 'ADV',
+                          pos1 == 'u' ~ 'INTJ')) -> sentiment_lexicon
+```
+Now we can match the sentiments from the dictionary to the words in the speeches. And calculate the sentiment of each speech following the method described in the paper.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Create a lookup table that store the sentiments of each speech
+negating_words <- c("not", "no", "never", "neither", "nor", "less")
+pos %>%
+  # Last 6 columns not needed
+  select(-tail(names(.), 6)) %>%
+  # Create 'valence' column as defined in the paper
+      # Negation and punctuation indicator column
+      mutate(is_negation = lemma %in% negating_words,
+             is_punctuation = upos == "PUNCT") %>%
+      # Running flag to identify regions between punctuations and regions between negating words
+      mutate(punctuation_block = cumsum(is_punctuation),
+             negation_block = cumsum(is_negation)) %>%
+      # If there is a switch in negation block inside the same punctuation block we assign valence
+      group_by(punctuation_block, negation_block) %>%
+      mutate(valence = ifelse(any(is_negation), 0, 1)) %>%
+      ungroup() %>%
+      # Remove temporary auxiliary columns
+      select(-is_negation, -is_punctuation, -negation_block, -negation_block) %>% 
+  # Keep relevant POS tags only
+  filter(upos %in% c('NOUN', 'VERB', 'ADJ', 'ADV', 'INTJ')) %>%
+  # Map polarity values
+  left_join(sentiment_lexicon, by = c('lemma' = 'lemma', 'upos' = 'pos1')) %>%
+  # Calculate sentiment based on paper
+  mutate(sentiment = polarity*valence) %>% 
+  # Calculate sum of sentiment for each speech and number of words that had a sentiment
+  group_by(doc_id) %>% 
+    summarise(sentiment_sum = sum(replace_na(sentiment, 0)),
+              sentiment_count = sum(!is.na(sentiment) & sentiment != 0)) -> sentiments_by_speech
+
+# Map the sentiments to the speeches in the original data df_clean
+df_clean %>% 
+  # Add the doc_id column to df_clean to join on it in the subsequent step
+  mutate(doc_id = paste0('doc', row_number())) %>% 
+  left_join(sentiments_by_speech, by = 'doc_id') %>%
+  # Replace NA values with 0 in the sentiment_sum and sentiment_count columns
+  mutate(across(c(sentiment_sum, sentiment_count), ~ replace_na(.x, 0))) -> df_clean
+```
+Validation - take again the sample of 100 speeches, manually validate all words and their sentiment whether we think it's correct given the context of the whole speech/sentence.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+pos_validation_UDPipe %>%
+  # Last 6 columns not needed
+  select(-tail(names(.), 6)) %>%
+  # Create 'valence' column as defined in the paper
+  mutate(valence = ifelse(lag(lemma) %in% negating_words & lead(upos) == "PUNCT", 0, 1)) %>%
+  # Keep relevant POS tags only
+  filter(upos %in% c('NOUN', 'VERB', 'ADJ', 'ADV', 'INTJ')) %>% 
+  # Map polarity values
+  left_join(sentiment_lexicon, by = c('lemma' = 'lemma', 'upos' = 'pos1')) %>%
+  # Calculate sentiment based on paper
+  mutate(sentiment = polarity*valence) -> sentiment_validation
+
+# Save file for easier manual validation in Excel
+sentiment_validation %>% write_xlsx("sentiment_validation.xlsx")
+```
+
+Results/visualizations
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Visualize as in the paper
+mblue <- "#002A48"
+pblue <- "#3F5F75"
+
+# Visualize the sentiment by date
+df_clean %>% 
+  group_by(debate_date) %>% 
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
+  mutate(sentismooth = smooth.spline(average_sentiment, spar = 0.5)$y) %>%
+  ggplot(aes(x = debate_date)) +
+  geom_line(aes(y = average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth), size = 2, colour=mblue) +
+  xlab("Date") +
+  ylab('Emotional Polarity') +
+  theme_minimal()
+
+# Visualize the sentiment by date - standardized data, as in paper
+df_clean %>% 
+  group_by(debate_date) %>% 
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
+  mutate(standardized_sentiment = scale(average_sentiment),
+         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>%
+  ggplot(aes(x = debate_date)) +
+  geom_line(aes(y = standardized_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = standardized_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth), size = 2, colour=mblue) +
+  xlab("Date") +
+  ylab('Emotional Polarity') +
+  # scale_y_continuous(limits = c(-3,3)) +
+  theme_minimal()
+  
+# Visualize the sentiment by quarter - standardized data, as in paper
+df_clean %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum) / sum(sentiment_count))) %>%
+  mutate(standardized_sentiment = scale(average_sentiment), 
+         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>% 
+  mutate(quarter = factor(quarter, levels = unique(quarter))) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = standardized_sentiment), size = .1, colour = pblue) +
+  geom_point(aes(y = standardized_sentiment), size = 6, colour = pblue, shape = 1, stroke = .25) +
+  geom_line(aes(y = sentismooth), size = 2, colour = mblue) +
+  xlab("Quarter") +
+  ylab('Emotional Polarity') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Visualize the sentiment by year - standardized data, as in paper
+df_clean %>% 
+  group_by(year) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum) / sum(sentiment_count))) %>%
+  mutate(standardized_sentiment = scale(average_sentiment), 
+         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = year, group = 1)) +
+  geom_line(aes(y = standardized_sentiment), size = .1, colour = pblue) +
+  geom_point(aes(y = standardized_sentiment), size = 6, colour = pblue, shape = 1, stroke = .25) +
+  geom_line(aes(y = sentismooth), size = 2, colour = mblue) +
+  xlab("Date") +
+  ylab('Emotional Polarity') +
+  scale_x_continuous(breaks=c(2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022))  +
+  theme_minimal()
+
+```
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+
+```
+
 ## References
+
+Benoit, K., & Matsuo, A. (2023). spacyr: Wrapper to the 'spaCy' 'NLP' Library. https://CRAN.R-project.org/package=spacyr
 
 House of Commons Library. (2016). *Analysis of the EU Referendum results 2016*. <https://commonslibrary.parliament.uk/research-briefings/cbp-7639/>. Accessed 21.08.2024
 
 Public Administration and Constitutional Affairs Committee. (2017). Lessons Learned from
 the EU Referendum (Twelth Report of Session 2016-17). *House of Commons*.
 
+Rheault, L., Beelen, K., Cochrane, C., & Hirst, G. (2016). Measuring emotion in parliamentary debates with automated textual analysis. *PLoS ONE*, 11(12). https://doi.org/10.1371/journal.pone.0168843
+
 Russell, M. (2021). Brexit and Parliament: The Anatomy of a Perfect Storm. *Parliamentary Affairs*, 74, 443-463  
 
 UK Parliament. *Parliamentary Sovereignty*. <https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/>. Accessed 21.08.2024
+
+Wijffels, Jan. 2021. Udpipe: Tokenization, Parts of Speech Tagging, Lemmatization and Dependency Parsing with the ’UDPipe’ ’NLP’ Toolkit. https://CRAN.R-project.org/package=udpipe.
