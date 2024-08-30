@@ -427,6 +427,27 @@ df_clean$debate_date <- dmy(df_clean$debate_date)
 
 # A later function needs the speeches to be in a column called 'text' se we rename it
 names(df_clean)[names(df_clean) == "speech_content"] <- "text"
+
+# Set loal language to english
+Sys.setlocale("LC_TIME", "C")
+
+# Change dates to date type format
+df_Debates_clean$date <- as.Date(df_Debates_clean$debate_date, format = "%d %B %Y")
+
+# Add a new column indicating whether the party was in the opposition or government at that time.
+df_Debates_clean$Government_Opposition <- ifelse(
+  (df_Debates_clean$Party == "Conservative" & df_Debates_clean$date <= as.Date("2015-05-08")) |
+    (df_Debates_clean$Party == "Conservative" & df_Debates_clean$date > as.Date("2015-05-08") & df_Debates_clean$date < as.Date("2019-12-16")) |
+    (df_Debates_clean$Party == "DUP" & df_Debates_clean$date > as.Date("2015-05-08") & df_Debates_clean$date < as.Date("2019-12-16")),
+  "Government", 
+  ifelse(
+    df_Debates_clean$Party == "Conservative" & df_Debates_clean$date >= as.Date("2019-12-16"),
+    "Government", 
+    "Opposition"
+  )
+)
+
+
 ```
 
 ## Sentiments
