@@ -20,19 +20,19 @@ library(lubridate)    # for date conversion in data cleaning
 setwd("C:/Users/LENOVO/Desktop/iskola stuff/mester stuff/Collecting and Analyzing Big Data for Social Sciences/Group Project")
 
 #### Data cleaning ####
-df_result = read.csv('Parliamentary_Debates_Combined.csv', row.names = 1)
+df_debates = read.csv('Parliamentary_Debates_Combined.csv', row.names = 1)
 
 # Delete all the duplicates
-df_clean <- distinct(df_result)
+df_debates <- distinct(df_debates)
 
-n_distinct(df_clean$speech_id)
-n_distinct(df_clean$speech_content)
+n_distinct(df_debates$speech_id)
+n_distinct(df_debates$speech_content)
+
+# Delete rows that have no speech (NA-s)
+df_clean <- df_debates[complete.cases(df_debates$speech_content), ]
 
 # Format the debate_date column so that it contains dates not character strings
 df_clean$debate_date <- dmy(df_clean$debate_date)
-
-# Delete rows that have no speech (NA-s)
-df_clean <- df_clean[complete.cases(df_clean$speech_content), ]
 
 
 #### Simple sentiment analysis ####
@@ -137,11 +137,42 @@ test %>%
   # Last 6 columns not needed
   select(-tail(names(.), 6)) %>%
   # Create 'valence' column as defined in the paper
-  mutate(valence = ifelse(lag(lemma) %in% negating_words & lead(upos) == "PUNCT", 1, 0)) %>%
+  mutate(valence = ifelse(lag(lemma) %in% negating_words & lead(upos) == "PUNCT", 1, 0)) %>% view()
   # Keep relevant POS tags only
   filter(upos %in% c('NOUN', 'VERB', 'ADJ', 'ADV', 'INTJ')) -> test_filtered
+  
+  
+  
+  
+test %>%
+  # Create a column to indicate whether the lemma is a negating word
+  mutate(is_negation = lemma %in% negating_words,
+         
+         # Create a column to indicate whether the word is punctuation based on the upos column
+         is_punctuation = upos == "PUNCT") %>%
+  
+  # Create a running flag to identify the region between a negating word and punctuation
+    mutate(punctuation_block = cumsum(is_punctuation),
+          negation_block = cumsum(is_negation)) %>%
+  # Group by sentence and negation_block to check within each block
+    group_by(punctuation_block, negation_block) %>%
+  
+  # Check if any negation exists in the current block and assign valence accordingly
+  mutate(valence = ifelse(any(is_negation), 1, 0)) %>% 
+  
+  # Ungroup to remove grouping structure
+  ungroup() %>%
+  # Clean up by removing temporary columns if desired
+  select(-is_negation, -is_punctuation, -negation_block, -negation_block) %>% view()
 
-# Load the lexicon from the paper  trained on parliamentary speeches
+  
+  
+  
+  
+  
+  
+
+# Load the lexicon from the paper trained on parliamentary speeches
 sentiment_lexicon <- read.csv("lexicon-polarity.csv")
 
 sentiment_lexicon %>%
@@ -163,7 +194,7 @@ test_filtered %>%
   # Calculate sum of sentiment for each speech and number of words that had a sentiment
   group_by(doc_id) %>% 
     summarise(sentiment_sum = sum(replace_na(sentiment, 0)),
-              sentiment_count = sum(!is.na(sentiment))) -> sentiments_by_speech
+              sentiment_count = sum(!is.na(sentiment) & sentiment != 0)) -> sentiments_by_speech
 
 
 df_clean %>% 
@@ -190,3 +221,43 @@ df_clean %>%
   ylab('Emotional Polarity') +
   theme_minimal()
 
+
+
+
+df_clean %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(average_sentiment = sum(sentiment_sum) / sum(sentiment_count)) %>% view()
+
+
+df_clean %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0, sum(sentiment_sum) / sum(sentiment_count))) %>%
+  mutate(standardized_sentiment = scale(average_sentiment), 
+         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>% 
+  # Convert the quarter to a factor ordered by time
+  mutate(quarter = factor(quarter, levels = unique(quarter))) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = standardized_sentiment), size = .1, colour = pblue) +
+  geom_point(aes(y = standardized_sentiment), size = 6, colour = pblue, shape = 1, stroke = .25) +
+  geom_line(aes(y = sentismooth), size = 2, colour = mblue) +
+  xlab("Date") +
+  ylab('Emotional Polarity') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+df_clean %>% 
+  group_by(year) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0, sum(sentiment_sum) / sum(sentiment_count))) %>%
+  mutate(standardized_sentiment = scale(average_sentiment), 
+         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = year, group = 1)) +
+  geom_line(aes(y = standardized_sentiment), size = .1, colour = pblue) +
+  geom_point(aes(y = standardized_sentiment), size = 6, colour = pblue, shape = 1, stroke = .25) +
+  geom_line(aes(y = sentismooth), size = 2, colour = mblue) +
+  xlab("Date") +
+  ylab('Emotional Polarity') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
