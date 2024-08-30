@@ -301,13 +301,11 @@ sentiment_lexicon %>% select(-seed) -> sentiment_lexicon
 
 knitr::kable(head(sentiment_lexicon), caption = "Observations form the lexicon of Rheault et al. (2016)")
 ```
-As we see POS tags... --> need to lemmatize and POS tag our speeches.
-
 Lemmatization is the process of finding the root (called lemma) of a word and is useful in computational linguistics because by analyzing various inflected forms of a word as a single item, text processing models can equate morphologically related words. POS tagging learns the linguistic category (noun/verb/adverb/etc.) of a word (called part of speech) and assigns it to the token. It is useful since the same word can have different meanings in different contexts (and thus, also different sentiments). In fact, the previously introduced dictionary we use indeed contains countless examples of the same lemma with different POS tags and sentiments.
 
 Both methods require to understand the meaning of the words not just by themselves, but also within the larger context of the surrounding sentence, or even the whole document. This is not an easy task, and is often done by machine learning algorithms or nowadays deep learning. Our purpose with this project is not to train a lemmatizer and POS tagger model on our own corpora, so we will use a pre-trained one.
 
-While stop word removal is a common pre-processing step in text analysis, they in fact help the model better understand the context of a word so we do not remove them and apply the pre-trained model on our raw texts (speeches).
+While stop word removal is a common pre-processing step in text analysis, they in fact help the model better understand the context of a word so we do not remove them and apply the pre-trained model on our raw texts (speeches). While several pre-trained models can be found on the internet, we will use UDPipe (Wijffels 2021) which seemed to be one of the most popular. To make sure it is adequate for our needs, we validate the lemmatization and POS tagging on a subset of speeches manually and also compare it to another package especially famous in the Python community, SpaCy (Benoit and Matsuo 2023).
 ```{r, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Download English model - enough to do once
 # m_eng <- udpipe_download_model(language = "english-ewt")
@@ -322,7 +320,9 @@ pos <- udpipe_annotate(m_eng_loaded, x = df_clean$text) %>%
 # Save data frame for later use
 save(pos, file = "pos.RData")
 ```
-Validate lemmatization and POS tagging by manually checking 100 speeches. Also compare it with spacy
+We validate the performance of the lemmatizer and POS tagger by taking a random sample of speeches, conducting lemmatization and POS tagging manually on each token by ourselves and comparing them with those obtained by the pre-trained models of UDPipe and SpaCy.
+
+[Discuss validation results here]
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Load the POS tagged data and model
 load("pos.RData")
@@ -344,14 +344,40 @@ pos_validation_spacy <- spacy_parse(sampled_speeches$text, lemma = TRUE, pos = T
 pos_validation_UDPipe %>% write_xlsx("pos_validation_UDPipe.xlsx")
 pos_validation_spacy %>% write_xlsx("pos_validation_spacy.xlsx")
 ```
-[Discuss validation results here]
-
-The POS tags from UDPipe are different than in the sentiment lexicon --> need to map them so that later we can match on lemma-pos combinations.
-```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+As the following lines shows, the POS tags form UDPipe are different from those in the sentiment dictionary. In the next step, we need to create a mapping between them.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 unique(pos$upos)
 unique(sentiment_lexicon$pos1)
 ```
-[Insert mapping table of POSs here]
+Based on the information in the table below, we map the POS tags in the sentiment lexicon to the tags in UDPipe, so that later we can match the sentiments based on them to our data.
+```{r, echo=FALSE}
+# Mapping table
+maptable <- data.frame(
+  "UDPipe POS" = c("NOUN", "VERB", "PUNCT", "CCONJ", "NUM", "SCONJ", "DET", 
+                 "ADP", "ADJ", "PROPN", "PART", "ADV", "AUX", "PRON", 
+                 "INTJ", "SYM", "X"),
+  "Description" = c("Noun", "Verb", "Punctuation", "Coordinating conjunction", "Numeral",
+                    "Subordinating conjunction", "Determiner", "Adposition", "Adjective",
+                    "Proper noun", "Particle", "Adverb", "Auxiliary", "Pronoun",
+                    "Interjection", "Symbol", "Other"),
+  "Example tokens" = c("team, access, support", "commend, welcome, provide", ". , ()",
+                       "and, or, but", "2020, two", "that, while, if, as", "a, the, what",
+                       "in, to, by, with", "delighted, warm, flexible", "Member, House, European",
+                       "'s, not, to", "certainly, very, preferably", "can, have, am",
+                       "I, he, she, anyone", "yes, no, psst", "%, $, £", ""),
+  "Sentiment lexicon POS" = c("n", "v", "", "", "", "", "",
+                                  "", "a", "", "", "r", "", "",
+                                  "u", "", ""),
+  "Action" = c("change POS in lexicon: n --> NOUN", "change POS in lexicon: v --> VERB", "", "",
+               "", "", "", "", "change POS in lexicon: a --> ADJ", "", "",
+               "change POS in lexicon: r --> ADV", "", "", "change POS in lexicon: u --> INTJ",
+               "", ""),
+  check.names = FALSE
+)
+
+knitr::kable(maptable, caption = "Mapping table of POS tags")
+```
+
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Mapping POS tags
 sentiment_lexicon %>%
@@ -487,6 +513,8 @@ df_clean %>%
 ```
 ## References
 
+Benoit, K., & Matsuo, A. (2023). spacyr: Wrapper to the 'spaCy' 'NLP' Library. https://CRAN.R-project.org/package=spacyr
+
 House of Commons Library. (2016). *Analysis of the EU Referendum results 2016*. <https://commonslibrary.parliament.uk/research-briefings/cbp-7639/>. Accessed 21.08.2024
 
 Public Administration and Constitutional Affairs Committee. (2017). Lessons Learned from
@@ -497,3 +525,5 @@ Rheault, L., Beelen, K., Cochrane, C., & Hirst, G. (2016). Measuring emotion in 
 Russell, M. (2021). Brexit and Parliament: The Anatomy of a Perfect Storm. *Parliamentary Affairs*, 74, 443-463  
 
 UK Parliament. *Parliamentary Sovereignty*. <https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/>. Accessed 21.08.2024
+
+Wijffels, Jan. 2021. Udpipe: Tokenization, Parts of Speech Tagging, Lemmatization and Dependency Parsing with the ’UDPipe’ ’NLP’ Toolkit. https://CRAN.R-project.org/package=udpipe.
