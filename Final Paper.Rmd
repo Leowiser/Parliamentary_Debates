@@ -306,15 +306,24 @@ library(lubridate)    # for date conversion in data cleaning
 ```
 
 ```{r}
+
+#############################
+###     Data Cleaning     ### 
+#############################
+
+# Upload the web scraped data
 df_Debates = read.csv("C:/Users/leonw/OneDrive - KU Leuven/2nd Semester/Collecting Big Data for Social Science/Final Assignment/Parliamentary_Debates_Combined.csv", row.names = 1)
 
-# Delete all duplicated rules
+# Delete all duplicated rows
 df_Debates_clean <- distinct(df_Debates)
 
-# Delete all rows where name and party 
+# Delete all rows where no speaker name exists as these are often not real speeches
+# but the descriptions of the following debates
 df_Debates_clean <- df_Debates_clean[!is.na(df_Debates_clean$speaker_name),]
 
-# Find often reoccurring speech contents
+# We will now try to find reoccurring speech contents to discard
+# sentences that are following parliamental protocol but have no real meaning.
+# However, they could effect our sentiment analysis.
 df_value_counts <- df_Debates_clean %>%
   group_by(speech_content) %>%
   summarize(count = n()) %>%
@@ -379,7 +388,7 @@ df_Debates_clean$Party <- gsub("Labour/Co-operative, Co-operative, Labour", "Lab
 df_Debates_clean$Party <- gsub("Liberal Democrat, Liberal Democrats", "Liberal Democrat", df_Debates_clean$Party)
 df_Debates_clean$Party <- gsub("Labour, Shadow Minister, Minister", "Labour", df_Debates_clean$Party)
 df_Debates_clean$Party <- gsub("Independent, Speaker", "Independent", df_Debates_clean$Party)
-table(df_Debates_clean$Party)
+
 
 table(df_Debates_clean$speaker_name[df_Debates_clean$Party=="Secretary, Shadow Minister, Minister"])
 table(df_Debates_clean$speaker_name[df_Debates_clean$Party=="Shadow Minister, Minister"])
@@ -390,19 +399,23 @@ table(df_Debates_clean$speaker_name[df_Debates_clean$Party=="Green, Conservative
 table(df_Debates_clean$speaker_name[df_Debates_clean$Party=="Labour, Green"])
 table(df_Debates_clean$speaker_name[df_Debates_clean$Party=="Liberal Democrat, DUP"])
 table(df_Debates_clean$speaker_name[df_Debates_clean$Party=="Minister"])
+table(df_Debates_clean$speaker_name[df_Debates_clean$Party=="Secretary"])
 
 
-
+# Hand coded data frame based on the names gathered from the table before
 new_party = read_excel("C:/Users/leonw/OneDrive - KU Leuven/2nd Semester/Collecting Big Data for Social Science/Final Assignment/New party.xlsx")
-new_party <- new_party[-3]
 
-
+# Based on the previous data frame combine the names with the assigned party.
+# There are no names liste twice.
 df_Debates_clean <- df_Debates_clean %>%
   left_join(new_party, by = "speaker_name", suffix = c("", ".new")) %>%
   mutate(Party = coalesce(Party.new, Party)) %>%
   select(-Party.new)
 
 table(df_Debates_clean$Party)
+
+# Delete the phrase "I beg to move" as it is mandatory at the beginning of every debate
+df_Debates_clean$speech_content <- sub("^I beg to move","",df_Debates_clean$speech_content)
 
 ```
 
