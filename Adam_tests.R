@@ -321,3 +321,35 @@ df_clean %>%
   xlab("Date") +
   ylab('Emotional Polarity') +
   theme_minimal()
+
+
+
+
+df_clean %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter, Government_Opposition) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
+  pivot_wider(names_from = Government_Opposition, values_from = average_sentiment) %>% 
+  select(-'NA') %>%
+  ungroup() %>%
+  mutate(sentismooth_government = smooth.spline(Government, spar = 0.5)$y,
+         sentismooth_opposition = smooth.spline(Opposition, spar = 0.5)$y) %>%
+  mutate(quarter = factor(quarter, levels = unique(quarter))) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = Government), size = .1, colour="#3F5F75") +
+  geom_point(aes(y = Government), size = 6, colour="#3F5F75", shape=1, stroke=.25) +
+  geom_line(aes(y = Opposition), size = .1, colour="#3FA8C3") +
+  geom_point(aes(y = Opposition), size = 6, colour="#3FA8C3", shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_government, colour="Government"), size = 2) +
+  geom_line(aes(y = sentismooth_opposition, colour="Opposition"), size = 2) +
+  scale_colour_manual(name="", values=c(Government="#002A48",Opposition="#008BB0")) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position=c(0.4,0.2),
+        legend.text = element_text(size = 10),
+        legend.key.height=unit(1.5,"line"),
+        legend.key.size=unit(2.5,"line"),
+        legend.key = element_blank())
