@@ -2291,7 +2291,7 @@ create a mapping between them.</p>
 the sentiment lexicon to the tags in UDPipe, so that later we can match
 the sentiments based on them to our data.</p>
 <table>
-<caption>Mapping table of POS tags</caption>
+<caption>Mapping guidance for POS tags</caption>
 <colgroup>
 <col width="9%" />
 <col width="21%" />
@@ -2437,9 +2437,31 @@ sentiment_lexicon %&gt;%
                           pos1 == &#39;a&#39; ~ &#39;ADJ&#39;,
                           pos1 == &#39;r&#39; ~ &#39;ADV&#39;,
                           pos1 == &#39;u&#39; ~ &#39;INTJ&#39;)) -&gt; sentiment_lexicon</code></pre>
-<p>Now we can match the sentiments from the dictionary to the words in
-the speeches. And calculate the sentiment of each speech following the
-method described in the paper.</p>
+<p>We can now match sentiments from the dictionary to the words in the
+speeches. Following the paper of Rheault et al. (2016), the sentiment in
+the House of Commons at a given time or over a time period is calculated
+in the following way: <span class="math display">\[
+y_t = \frac{\sum_{i=1}^{n_t} I\{w_{it} \in L\} \cdot s_i \cdot
+\theta_{it}}{\sum_{i=1}^{n_t} I\{w_{it} \in L\}}
+\]</span> Where <span class="math inline">\(w_{it}\)</span> are the
+lemmas in the speeches during period <em>t</em>, <span class="math inline">\(I\{w_{i} \in L\}\)</span> is an indicator function
+equaling 1 if <span class="math inline">\(w_{i}\)</span> is present in
+the sentiment lexicon and 0 otherwise, <span class="math inline">\(s_{i}\)</span> is the polarity score in the
+dictionary associated with lemma <em>i</em>, <span class="math inline">\(\theta_{it}\)</span> is a parameter measuring the
+valence of lemma <em>i</em> in the speeches during period <em>t</em>,
+and <span class="math inline">\(n_{t}\)</span> is the total number of
+lemmas in the speeches during period <em>t</em>. The valence parameter
+takes 0 if <span class="math inline">\(w_{it}\)</span> is located
+between a negating word (<em>not</em>, <em>no</em>, <em>never</em>,
+<em>neither</em> and <em>nor</em>) and a punctuation and 1 otherwise,
+this way cancels attributing sentiments to expressions such as “not
+satisfied”, “no benefit” and so on. To summarize the formula in one
+sentence, we take the sum of sentiments for lemmas in the speeches that
+were also present in the lexicon but were not between a negating word
+and a punctuation, and divide this by the number of such lemmas over the
+time period of interest. The division with the count of matched lemmas
+account for the biases of long speeches having more lemmas and
+potentially higher sentiment while short speeches lower.</p>
 <pre class="r"><code># Create a lookup table that store the sentiments of each speech
 negating_words &lt;- c(&quot;not&quot;, &quot;no&quot;, &quot;never&quot;, &quot;neither&quot;, &quot;nor&quot;)
 pos %&gt;%
@@ -2479,20 +2501,12 @@ df_clean %&gt;%
 <p>Validation - take again the sample of 100 speeches, manually validate
 all words and their sentiment whether we think it’s correct given the
 context of the whole speech/sentence.</p>
-<pre class="r"><code>pos_validation_UDPipe %&gt;%
-  # Last 6 columns not needed
-  select(-tail(names(.), 6)) %&gt;%
-  # Create &#39;valence&#39; column as defined in the paper
-  mutate(valence = ifelse(lag(lemma) %in% negating_words &amp; lead(upos) == &quot;PUNCT&quot;, 0, 1)) %&gt;%
-  # Keep relevant POS tags only
-  filter(upos %in% c(&#39;NOUN&#39;, &#39;VERB&#39;, &#39;ADJ&#39;, &#39;ADV&#39;, &#39;INTJ&#39;)) %&gt;% 
-  # Map polarity values
-  left_join(sentiment_lexicon, by = c(&#39;lemma&#39; = &#39;lemma&#39;, &#39;upos&#39; = &#39;pos1&#39;)) %&gt;%
-  # Calculate sentiment based on paper
-  mutate(sentiment = polarity*valence) -&gt; sentiment_validation
-
-# Save file for easier manual validation in Excel
-sentiment_validation %&gt;% write_xlsx(&quot;sentiment_validation.xlsx&quot;)</code></pre>
+<pre class="r"><code># Sample 100 speeches fpr validation
+set.seed(123)    #For reproducibility
+df_clean %&gt;% 
+  sample_n(100) %&gt;% 
+  mutate(average_sentiment = ifelse(sentiment_count == 0, 0, sentiment_sum/sentiment_count)) %&gt;%
+  write_xlsx(&quot;sentiment_validation.xlsx&quot;)</code></pre>
 <p>Results/visualizations</p>
 <pre class="r"><code># Visualize as in the paper
 mblue &lt;- &quot;#002A48&quot;
