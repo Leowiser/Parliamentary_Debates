@@ -2246,8 +2246,20 @@ save(pos, file = &quot;pos.RData&quot;)</code></pre>
 <p>We validate the performance of the lemmatizer and POS tagger by
 taking a random sample of speeches, conducting lemmatization and POS
 tagging manually on each token by ourselves and comparing them with
-those obtained by the pre-trained models of UDPipe and SpaCy.</p>
-<p>[Discuss validation results here]</p>
+those obtained by the pre-trained models of UDPipe and SpaCy. We coded a
+total of 1400 tokens manually, 98.5% of lemmas matched with the lemmas
+created by UDPipe and 99.1% of the POS tags matched with those from
+UDPipe. These results are as good as what we can expect from any model,
+leading us to be satisfied with UDPipe’s pre-trained model. SpaCy palso
+roduces similarly strong results with differences being mostly
+irrelevant (e.g., one model lemmatizing ‘an’ as ‘a’ while the other
+keeps it as ‘an’, etc.). What made us choose UDPipe over SpaCy is that
+the latter splits compound words separated by hyphens into multiple
+lemmas, whereas UDPipe does not - While one could argue that splitting
+is the correct approach, such words are treated as one lemma in the
+sentiment lexicon (e.g. co-operation, high-quality, etc.) which means we
+could not assign a sentiment to these words if we used SpaCy’s
+model.</p>
 <pre class="r"><code># Load the POS tagged data and model
 load(&quot;pos.RData&quot;)
 m_eng_loaded &lt;- udpipe_load_model(file = &quot;english-ewt-ud-2.5-191206.udpipe&quot;)

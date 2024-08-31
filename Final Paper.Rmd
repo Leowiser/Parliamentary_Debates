@@ -480,9 +480,7 @@ pos <- udpipe_annotate(m_eng_loaded, x = df_clean$text) %>%
 # Save data frame for later use
 save(pos, file = "pos.RData")
 ```
-We validate the performance of the lemmatizer and POS tagger by taking a random sample of speeches, conducting lemmatization and POS tagging manually on each token by ourselves and comparing them with those obtained by the pre-trained models of UDPipe and SpaCy.
-
-[Discuss validation results here]
+We validate the performance of the lemmatizer and POS tagger by taking a random sample of speeches, conducting lemmatization and POS tagging manually on each token by ourselves and comparing them with those obtained by the pre-trained models of UDPipe and SpaCy. We coded a total of 1400 tokens manually, 98.5% of lemmas matched with the lemmas created by UDPipe and 99.1% of the POS tags matched with those from UDPipe. These results are as good as what we can expect from any model, leading us to be satisfied with UDPipe's pre-trained model. SpaCy palso roduces similarly strong results with differences being mostly irrelevant (e.g., one model lemmatizing 'an' as 'a' while the other keeps it as 'an', etc.). What made us choose UDPipe over SpaCy is that the latter splits compound words separated by hyphens into multiple lemmas, whereas UDPipe does not - While one could argue that splitting is the correct approach, such words are treated as one lemma in the sentiment lexicon (e.g. co-operation, high-quality, etc.) which means we could not assign a sentiment to these words if we used SpaCy's model.
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Load the POS tagged data and model
 load("pos.RData")
@@ -535,7 +533,7 @@ maptable <- data.frame(
   check.names = FALSE
 )
 
-knitr::kable(maptable, caption = "Mapping table of POS tags")
+knitr::kable(maptable, caption = "Mapping guidance for POS tags")
 ```
 
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
@@ -547,6 +545,9 @@ sentiment_lexicon %>%
                           pos1 == 'r' ~ 'ADV',
                           pos1 == 'u' ~ 'INTJ')) -> sentiment_lexicon
 ```
+We can now match sentiments from the dictionary to the words in the speeches. Following the paper of Rheault et al. (2016), the sentiment in the House of Commons at a given time or over a time period is calculated in the following way. We take the sum of all sentiment scores associated with lemmas that occured in both the speeches and the lexicon, divide this by the total number of these lemmas and multiply the result with a factor called valence.
+
+
 Now we can match the sentiments from the dictionary to the words in the speeches. And calculate the sentiment of each speech following the method described in the paper.
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Create a lookup table that store the sentiments of each speech
