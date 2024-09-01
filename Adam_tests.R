@@ -451,3 +451,34 @@ df_clean %>%
   
   result
   
+  
+  
+  
+  df_clean %>%
+    mutate(average_sentiment = ifelse(sentiment_count == 0, 0, sentiment_sum / sentiment_count)) %>% 
+    mutate(period = case_when(
+      debate_date <= as.Date("2016-06-23") ~ "Before referendum",
+      debate_date >= as.Date("2016-06-24") & debate_date <= as.Date("2020-01-31") ~ "Between Brexit",
+      debate_date > as.Date("2020-01-31") ~ "After Brexit"
+    )) -> testasd
+  
+  
+testasd %>% group_by(period) %>%
+  summarise(average_of_averages = mean(average_sentiment, na.rm = TRUE)) %>% view()
+
+average_sentiments_by_period  
+
+  pairwise_results <- pairwise.t.test(
+    x = testasd$average_sentiment, 
+    g = testasd$period, 
+    p.adjust.method = "bonferroni"
+  )
+  
+  pairwise_results  
+  
+  
+  anova_result <- aov(average_sentiment ~ period, data = testasd)
+  summary(anova_result)
+
+  TukeyHSD(anova_result)  
+  
