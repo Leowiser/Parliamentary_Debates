@@ -1,6 +1,7 @@
 ---
 title: "Sentiments in the UK Parliament:"
 subtitle: "10 years of debates about the EU"
+author: "Adam Varkoly (r0823515), Leon Weiser (r0979317)"
 output:
   html_document:
     df_print: paged
@@ -13,7 +14,7 @@ Parliamentary debates are at the heart of every democratic society. Surely the l
 
 Interestingly, Rhealut et al. (2016) find in their paper, that the sentiments in parliamentary debates in the UK became more positive in the last century, although there is a perception that society is becoming more divided. Their research considers every debate between 1909 and 2013 in the house of commons not focusing on especially on an emotional topic that was strongly debated in public and the positive increase could be due to more bureaucratic debates on uncontroversial topics. Thus the following paper takes a look at the sentiments connected to one of the more controversial topics in the British parliament; the European Union (EU) during times of Brexit.
 
-The positive outcome of the British referendum to withdrawal from the EU in 2016 came as a surprise to most other member states of the European Union. With a winning margin of only 3.8% and an overall approval to leave the European Union by 51.9% the decision was conceivably close (House of Commons Library, 2016). This direct democratic approach was relatively unusual especially since the United Kingdom of England and Northern Ireland (UK) has a strong representative democracy in which the sovereignty of the parliament is "the most important part of the UK constitution" (UK Parliament)^[The parliament generally refers to the house of commons. Thus, in the following text house of commons and parliament are used interchangeably]. Furthermore, the Prime Minister at the time David Cameron as well as the biggest opposition party very much favoured remaining in the EU and thus disagreeing with the outcome of the referendum (cf. p.445, Russell, 2020). This vast majority for remaining in the EU in the parliament did not only lead to "no proper planning for a Leave vote" (Public Administration and Constitutional Affairs Committee, 2017, p. 4), but also to a clear difference between what most members of parliament (MP) and what the population wanted. 
+The positive outcome of the British referendum to withdrawal from the EU in 2016 came as a surprise to most other member states of the European Union. With a winning margin of only 3.8% and an overall approval to leave the European Union by 51.9% the decision was conceivably close (House of Commons Library, 2016). This direct democratic approach was relatively unusual especially since the United Kingdom of England and Northern Ireland (UK) has a strong representative democracy in which the sovereignty of the parliament is "the most important part of the UK constitution" (UK Parliament d))^[The parliament generally refers to the house of commons. Thus, in the following text house of commons and parliament are used interchangeably]. Furthermore, the Prime Minister at the time David Cameron as well as the biggest opposition party very much favoured remaining in the EU and thus disagreeing with the outcome of the referendum (cf. p.445, Russell, 2020). This vast majority for remaining in the EU in the parliament did not only lead to "no proper planning for a Leave vote" (Public Administration and Constitutional Affairs Committee, 2017, p. 4), but also to a clear difference between what most members of parliament (MP) and what the population wanted. 
 
 Russell (2020) raises that the debates about the European Union which overturned deals with the EU multiple times even lead to an anti-parliamentary rhetoric from the Prime Ministers Theresa May as well as Boris Johnson and the Attorney General Geoffrey Cox. Also the news took strong partisanship towards one side with *The Daily Mail* headlining “Enemies of the People” towards the sovereignty of the Parliament (cf. p.520 Rone (2023)).
 
@@ -27,7 +28,7 @@ We thus conduct a sentiment analysis on the debates about the EU from 2012 until
 
 * Is the sentiment significantly different during debates about highly controversial topics like Brexit?
 
-We aim to do so by first describing our data in detail which we gathered web scrapping parliamentary debates between October 2012 and October 2022. Following we will describe the conducted sentiment analysis using a dictionary build especially for parliamentary debates. The gathered results are discussed based on the time, party, and three main topics; Brexit, Economy, Migration.
+We aim to do so by first give a brief introduction into the UK parliament and then describing our data in detail which we gathered web scrapping parliamentary debates between October 2012 and October 2022. Following we will describe the conducted sentiment analysis using a dictionary build especially for parliamentary debates. The gathered results are discussed based on the time, party, and three main topics; Brexit, Economy, Migration.
 
 Finally we answer the posed research questions in the last section.
 
@@ -36,13 +37,18 @@ Finally we answer the posed research questions in the last section.
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Data
-To answer the question we need the data of the debates in the British parliament. To gather these parliamentary debates, we web scraped the debates in the house of commons and Westminster hall from the *TheyWorkForYou* website. *TheyWorkForYou* is run by *mySociety* a British non for profit organization and aims to make the work of the Uk parliament more accessible and transparent to the wider public (cf. TheyWorkForYou, mySociety). In this capacity they also publish a mirrored version of *Hansard* the official webpage for transcripts of UK debates. 
+# UK parliamentary debates
+The Uk parliament is a two chamber system with the House of Lords and the House of Commons. The latter is the legislative chamber and will be the focus of the study. Debates in the House of Commons begin with a motion proposed by any of the members of Parliament (MPs). Now Each MP is allowed to speak multiple times during the debate. Another possible type of debate is a Westminster Hall debate where MPs can raise local or nation issues and receive answers form a government minsiter as well as debating these. Furthermore, they can put in urgent question to question a minister on a topic of importance (cf. UK Parliament c)).
+
+# Data
+To answer the question we need the data of these debates in the British parliament. To gather the parliamentary debates, we web scraped the debates in the House of Commons and Westminster hall from the *TheyWorkForYou* website. *TheyWorkForYou* is run by *mySociety* a British non for profit organization and aims to make the work of the Uk parliament more accessible and transparent to the wider public (cf. TheyWorkForYou, mySociety). In this capacity they also publish a mirrored version of *Hansard* the official webpage for transcripts of UK debates. 
 
 In our work we use *TheyWorkForYou* instead of *Hansard* as the content is exactly the same but *Hansard* uses CloudFlare which makes web scraping significantly more complicated.
 
 ### Data collection
-The data we gather include all debates between 25.10.2012 until the 25.10.2022. The time frame is chosen to cover 10 years and cover the years before and after the Referendum as well as official Brexit (31.01.2020). The data is constructed by searching for all debates in the time frame where either the European Union, the European Commission, the European Council, or Brexit was mentioned. These debates are then filtered to only include debates that have European Union, European Commission, European Council, Brexit, European, Europe, or EU (case insensitive) in their title and are no written answers. The web scraping algorithm covers 61 two month periods as previous tries showed that only up to three month time spans could be scraped reliably. Furthermore the date of the debate is saved as well as the name and party/position of the speakers.
+The data we gather include all debates between 25.10.2012 until the 25.10.2022. The time frame is chosen to cover 10 years and cover the years before and after the Referendum as well as official leave date of the UK (31.01.2020). The data is constructed by searching for all debates in the time frame where either the European Union, the European Commission, the European Council, or Brexit was mentioned. These debates are then filtered to only include debates that have European Union, European Commission, European Council, Brexit, European, Europe, or EU (case insensitive) in their title and are no written answers. Then latter was done to only scrape debates and the former to ensure that the debate was actually about a topic directly connected to the European Union as the filtered words are often mentioned in the context of other debates. 
+
+The web scraping algorithm covers 61 two month periods as previous tries showed that only up to three month time spans could be scraped reliably. Furthermore the date of the debate is saved as well as the name and party/position of the MPs.
 
 ```{r, eval=FALSE, echo=TRUE}
 # Webscraping
@@ -289,11 +295,11 @@ Web scrapping websites always comes with certain ethical considerations. Checkin
 ## Data cleaning
 To make the data useful for further analysis cleaning is necessary. We use the before constructed combined data frame of the 61 two month time spans which was already cleaned to include only distinct rows. In a next step all rows containing missing values in the speaker name column are deleted as they are not speeches in debates but descriptions or commentaries that follow the same logic in the source code of the website and are thus scraped as well. 
 
-As parliamentary debates often follow unwritten rules and some sentences might occur often without carrying significant reasons, a filter is applied to find often reoccurring statements. The statements that follow protocol like ""Will the right hon. Gentleman give way?" (cf. UK Parliament b)), which indicates the wish of an MP to speak during another MPs speech, are deleted as they could influence the overall sentiment even though they are mandatory to raise for the MPs. Furthermore descriptions of actions like "rose--" are deleted as well.
+As parliamentary debates often follow unwritten rules and some sentences might occur often without carrying significant reasons, a filter is applied to find often reoccurring statements. The statements that follow protocol like ""Will the right hon. Gentleman give way?" (cf. UK Parliament a)), which indicates the wish of an MP to speak during another MPs speech, are deleted as they could influence the overall sentiment even though they are mandatory to raise for the MPs. Furthermore descriptions of actions like "rose--" are deleted as well.
 
 To conduct an analysis depending on the speaker party the party of the speaker has to be identified. Unfortunately on the website the party is not clearly indicated. Looking at the data we see 1436 distinct values for the parties. This is reduced by implementing a new column that includes the Party, Minister, Speaker, Shadow Minister, depending on if a substring of one of these exists. Then individuals with multiple matches are further analysed. If a party is one of the matches, that party is chosen. If there are no parties in the description, the names are gathered and parties are hand coded to the politicians and added to the final column. Speaker is the only non party in the column as they have to be non-partisan in their role.
 
-A further formality of the House of commons is to instigate a motion by starting with "I beg to move,..." (cf. UK Parliament a)). As this would influence the sentiment of a speech the substring is deleted if it appears.
+A further formality of the House of commons is to instigate a motion by starting with "I beg to move,..." (cf. UK Parliament b)). As this would influence the sentiment of a speech the substring is deleted if it appears.
 
 Finally a further column is created including Government or Opposition depending on the parties of the speaker being in the government or in opposition. 
 
@@ -793,6 +799,10 @@ knitr::kable(Values_by_year, caption = "Not Standardized Sentiment Value by Year
 
 Aggregating the data on a yearly level shows the overall trend of sentiments in the UK parliament on topics related to the EU. The shown data is standardized. In the first years until 2017 a clear upwards trend can be observed indicating more positive sentiments. Between 2018 and 2022 the data however changes drastically between the years, going from its lowest in 2019 to second highest in 2020.
 
+Looking at the table we see that the difference between the sentiments in real numbers is not as severe as assumed by the standardized plot.
+
+Furthermor, interesting is that counterintuitively to Rheault et al. (2016) findings the sentiments do not get much worse in 2020 to 2022 even though the COVID-19 pandamic had a strong effect on the british economy.
+
 
 ## Sentiment by Government - opposition
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
@@ -923,7 +933,7 @@ The results state that there is not a clear difference in the highly controversi
 
 
 # Limitations
-When working with lexicon based approaches for sentiment analysis the strict rules it follows makes it perform poorly in comparison to machine learning or manual coding approaches (cf. p.128 f. van Atteveldt et. al (2021)). Therefore, this paper made use of a topic specific lexicon and tried to overcome the problem of negated sentences. Still, during validation it was obvious that sarcastic speeches are not unusual and will impact the sentiment analysis. Also very complex sentence structures which are common in parliamentary debates can change the sentiment of the speech. Validation showed non the less an okay precision leading to confidence in our results on an aggregated level. Individual speeches however could be easily misspecified and the analysis only works with sufficiently large data. Also, the debates in the parliament are under certain restrictions and traditions. Therefore, the MPs will not say directly what they think but rather use indirect and more polite speach making every debate slightly more positive. 
+When working with lexicon based approaches for sentiment analysis the strict rules it follows makes it perform poorly in comparison to machine learning or manual coding approaches (cf. p.128 f. van Atteveldt et. al (2021)). Therefore, this paper made use of a topic specific lexicon and tried to overcome the problem of negated sentences. Still, during validation it was obvious that sarcastic speeches are not unusual and will impact the sentiment analysis. Also very complex sentence structures which are common in parliamentary debates can change the sentiment of the speech. Validation showed non the less an okay precision leading to confidence in our results on an aggregated level. Individual speeches however could be easily misspecified and the analysis only works with sufficiently large data. Also, the debates in the parliament are under certain restrictions and traditions which promote to debate with "good temper and moderation" (May (1844)). Therefore, the MPs will not say directly what they think but rather use indirect and more polite speach making every debate slightly more positive. 
 
 Furthermore, our paper does a good job in showing the trends of the sentiments related to EU topics. But it fails to show causal relations. Our results therefore do not show what caused the difference in sentiments but rather that they exist. This is also the scope of our proposed questions should however trigger further research to show the reasons for possible sentiment changes in the debate.
 
@@ -936,9 +946,28 @@ Finally also the most controversial but still big enough topics Brexit, Economy,
 
 Given the limitations of the lexicon based approach as well as the causal relations, we can conclude that the sentiment of debates in the British parliament concerning the emotional EU related topics were slightly positive, however did not show a further positive trend. Also every subcategory showed a more positive sentiment right after the vote to leave in 2016 and a decline to previous or worse levels.
 
-#Pitch
+# Pitch
 
 
+# Data availability
+
+Raw data on the scraped debates: <https://kuleuven-my.sharepoint.com/:x:/g/personal/leon_weiser_student_kuleuven_be/EaetmmM5Q-tKlykZjUkwT6YB_m9MGVgz_T6ZnrMlUO48cA?e=jsyznH>
+
+Data on parties of certain members: <https://kuleuven-my.sharepoint.com/:x:/g/personal/leon_weiser_student_kuleuven_be/ERhh701OJDFHhT1b_N3QsbwBNs1zXjtOd0vGJz9xjT67Lw?e=bhRgrn>
+
+Validation of spacy pos: <https://kuleuven-my.sharepoint.com/:x:/g/personal/leon_weiser_student_kuleuven_be/EZIon6jLcz9DlVxkPCGA5iUBFcNZ2GImfDsxVQyMD3hffg?e=oadGcl>
+
+Validation of Udpipe pos: <https://kuleuven-my.sharepoint.com/:x:/g/personal/leon_weiser_student_kuleuven_be/EbfAUhv1OA9LoebiX5vtYwsB57mKw8X0qCwoA8JwT4DJMw?e=WwN1ED>
+
+Used lexicon: <https://kuleuven-my.sharepoint.com/:x:/g/personal/leon_weiser_student_kuleuven_be/EXgGngMPsBpFgWxDM3K56QABlZrHom6VKq-fCcjY3F3plw?e=XcwatU>
+
+Sentiment validation: <https://kuleuven-my.sharepoint.com/:x:/g/personal/leon_weiser_student_kuleuven_be/ETt9o-fFrihEttj6wmQzjz8B96An68L5nWeBVMlJOw0PDg?e=JhzHbL>
+
+Data on the topics: <https://kuleuven-my.sharepoint.com/:x:/g/personal/leon_weiser_student_kuleuven_be/EWORqevQsU1DsQKORwYRPi4BjqySF20dNzlF-RRdZliCyg?e=jeoqyI>
+
+# Usage of Generative AI
+
+In the course of this project Generative AI models (ChatGPT (OpenAI (2023))) were used for debugging code. No Generative AI model was used to interpret the results or write the report. 
 
 # References
 
@@ -950,9 +979,13 @@ House of Commons Library. (2016). *Analysis of the EU Referendum results 2016*. 
 
 Iyengar, S. et al. (2012). Affect, no ideology: A social identity perpective on polarization. *Public opinion quaterly*, 76(3), 405-431
 
+May, T. E. (1844). A treatise upon the law, privileges, proceedings and usage of Parliament. C. Knight & Compan. Taken from <https://www.parliament.uk/globalassets/documents/rules-of-behaviour.pdf>
+
 Murphy, M. (2021). Northern Ireland and Brexit: where sovereignty and stability collide?. *Journal of Contemporary European Studies*, 29(3), 405-418
 
 mySociety. *Hello, we're mySociety*. <https://www.mysociety.org/about/>. Accessed 30.08.2024
+
+OpenAI. 2023. *ChatGPT: A Large Language Model*. <https://chat.openai.com/> 
 
 Public Administration and Constitutional Affairs Committee. (2017). Lessons Learned from
 the EU Referendum (Twelth Report of Session 2016-17). *House of Commons*.
@@ -969,7 +1002,9 @@ UK Parliament a). *Debates*. <https://www.parliament.uk/about/how/business/debat
 
 UK Parliament b). *Give way*. <https://www.parliament.uk/site-information/glossary/give-way/>. Accessed 30.08.2024
 
-UK Parliament c). *Parliamentary Sovereignty*. <https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/>. Accessed 21.08.2024
+UK Parliament c). *How Parliament works*. <https://www.parliament.uk/about/how/>. Accessed 01.09.2024
+
+UK Parliament d). *Parliamentary Sovereignty*. <https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/>. Accessed 21.08.2024
 
 van Atteveldt, W. et al. (2021). The Validity of Sentiment Analysis: Comparing Manual Annotation, Crowd-Coding, Dictionary Approaches, and Machine Learning Algorithms. *Communication Methods and Measures*, 15(2), 121-140
 
