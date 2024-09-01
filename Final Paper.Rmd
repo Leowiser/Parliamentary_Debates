@@ -1,6 +1,7 @@
 ---
 title: "Sentiments in the UK Parliament:"
 subtitle: "10 years of debates about the EU"
+author: "Ádám Varkoly (r0823515), Leon Weiser (r0979317)"
 output:
   html_document:
     df_print: paged
@@ -11,9 +12,9 @@ date: "`r Sys.Date()`"
 # Introduction
 Parliamentary debates are at the heart of every democratic society. Surely the later influences what is discussed in the parliament but research by Iyengar et.al (2012) suggests that the tone of discourse between parties and their campaigns can shape the society by increasing the divide between the different partisan groups as well. Especially emotional topics have a strong influence on such a development.
 
-Interestingly, Rhealut et al. (2016) find in their paper, that the sentiments in parliamentary debates in the UK became more positive in the last century, although there is a perception that society is becoming more divided. Their research considers every debate between 1909 and 2013 in the house of commons not focusing on especially on an emotional topic that was strongly debated in public and the positive increase could be due to more bureaucratic debates on uncontroversial topics. Thus the following paper takes a look at the sentiments connected to one of the more controversial topics in the British parliament; the European Union (EU) during times of Brexit.
+Interestingly, Rhealut et al. (2016) find in their paper, that the sentiments in parliamentary debates in the UK became more positive in the last century, although there is a perception that society is becoming more divided. Their research considers every debate between 1909 and 2013 in the House of Commons not focusing on especially on an emotional topic that was strongly debated in public and the positive increase could be due to more bureaucratic debates on uncontroversial topics. Thus the following paper takes a look at the sentiments connected to one of the more controversial topics in the British parliament; the European Union (EU) during times of Brexit.
 
-The positive outcome of the British referendum to withdrawal from the EU in 2016 came as a surprise to most other member states of the European Union. With a winning margin of only 3.8% and an overall approval to leave the European Union by 51.9% the decision was conceivably close (House of Commons Library, 2016). This direct democratic approach was relatively unusual especially since the United Kingdom of England and Northern Ireland (UK) has a strong representative democracy in which the sovereignty of the parliament is "the most important part of the UK constitution" (UK Parliament)^[The parliament generally refers to the house of commons. Thus, in the following text house of commons and parliament are used interchangeably]. Furthermore, the Prime Minister at the time David Cameron as well as the biggest opposition party very much favoured remaining in the EU and thus disagreeing with the outcome of the referendum (cf. p.445, Russell, 2020). This vast majority for remaining in the EU in the parliament did not only lead to "no proper planning for a Leave vote" (Public Administration and Constitutional Affairs Committee, 2017, p. 4), but also to a clear difference between what most members of parliament (MP) and what the population wanted. 
+The positive outcome of the British referendum to withdrawal from the EU in 2016 came as a surprise to most other member states of the European Union. With a winning margin of only 3.8% and an overall approval to leave the European Union by 51.9% the decision was conceivably close (House of Commons Library, 2016). This direct democratic approach was relatively unusual especially since the United Kingdom of England and Northern Ireland (UK) has a strong representative democracy in which the sovereignty of the parliament is "the most important part of the UK constitution" (UK Parliament)^[The parliament generally refers to the House of Commons. Thus, in the following text House of Commons and parliament are used interchangeably]. Furthermore, the Prime Minister at the time David Cameron as well as the biggest opposition party very much favoured remaining in the EU and thus disagreeing with the outcome of the referendum (cf. p.445, Russell, 2020). This vast majority for remaining in the EU in the parliament did not only lead to "no proper planning for a Leave vote" (Public Administration and Constitutional Affairs Committee, 2017, p. 4), but also to a clear difference between what most members of parliament (MP) and what the population wanted. 
 
 Russell (2020) raises that the debates about the European Union which overturned deals with the EU multiple times even lead to an anti-parliamentary rhetoric from the Prime Ministers Theresa May as well as Boris Johnson and the Attorney General Geoffrey Cox. Also the news took strong partisanship towards one side with *The Daily Mail* headlining “Enemies of the People” towards the sovereignty of the Parliament (cf. p.520 Rone (2023)).
 
@@ -21,7 +22,7 @@ Although this is not a new development as the UK historically was rather Eurosce
 
 We thus conduct a sentiment analysis on the debates about the EU from 2012 until 2022 and try to answer the following research questions: 
 
-* How did the sentiment in debates about an emotional topic like the EU changed over time in the house of commons?
+* How did the sentiment in debates about an emotional topic like the EU changed over time in the House of Commons?
 
 * Is there a significant difference in the sentiments between the opposition and the ruling party?
 
@@ -37,12 +38,41 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Data
-To answer the question we need the data of the debates in the British parliament. To gather these parliamentary debates, we web scraped the debates in the house of commons and Westminster hall from the *TheyWorkForYou* website. *TheyWorkForYou* is run by *mySociety* a British non for profit organization and aims to make the work of the Uk parliament more accessible and transparent to the wider public (cf. TheyWorkForYou, mySociety). In this capacity they also publish a mirrored version of *Hansard* the official webpage for transcripts of UK debates. 
+To answer the question we need the data of the debates in the British parliament. To gather these parliamentary debates, we web scraped the debates in the House of Commons and Westminster hall from the *TheyWorkForYou* website. *TheyWorkForYou* is run by *mySociety* a British non for profit organization and aims to make the work of the Uk parliament more accessible and transparent to the wider public (cf. TheyWorkForYou, mySociety). In this capacity they also publish a mirrored version of *Hansard* the official webpage for transcripts of UK debates. 
 
 In our work we use *TheyWorkForYou* instead of *Hansard* as the content is exactly the same but *Hansard* uses CloudFlare which makes web scraping significantly more complicated.
 
 ### Data collection
 The data we gather include all debates between 25.10.2012 until the 25.10.2022. The time frame is chosen to cover 10 years and cover the years before and after the Referendum as well as official Brexit (31.01.2020). The data is constructed by searching for all debates in the time frame where either the European Union, the European Commission, the European Council, or Brexit was mentioned. These debates are then filtered to only include debates that have European Union, European Commission, European Council, Brexit, European, Europe, or EU (case insensitive) in their title and are no written answers. The web scraping algorithm covers 61 two month periods as previous tries showed that only up to three month time spans could be scraped reliably. Furthermore the date of the debate is saved as well as the name and party/position of the speakers.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+# Set working directory
+setwd("C:/Users/LENOVO/Desktop/iskola stuff/mester stuff/Collecting and Analyzing Big Data for Social Sciences/Group Project")
+
+# load necessary packages
+# install.packages(c("tidyverse", "httr", "glue", "dplyr", "stringr"))
+library(dplyr)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(xml2)
+library(glue)
+library(rvest)
+library(xml2)
+library(glue)
+library(stringr)
+library(jsonlite)
+library(data.table)
+library(quanteda)
+library(topicmodels)
+library(readxl)
+library(tm)
+library(tidytext)
+library(lubridate)
+library(udpipe)
+library(spacyr)
+library(writexl)
+
+```
 
 ```{r, eval=FALSE, echo=TRUE}
 # Webscraping
@@ -284,7 +314,7 @@ write.csv(df_clean, "Parliamentary_Debates_Combined.csv")
 ```
 
 ## Ethical considerations
-Web scrapping websites always comes with certain ethical considerations. Checking the robots.txt of the websites shows that it is legal to scrape the debates in the house of commons. Despite the legal considerations sustainable approaches were used to scrape the data. First of all scraping was conducted during the night to avoid overloading the page in times when it is frequently used. Second a waiting time 30 seconds was chosen before scraping a new time frame to ensure not to burden the webpage to much.
+Web scrapping websites always comes with certain ethical considerations. Checking the robots.txt of the websites shows that it is legal to scrape the debates in the House of Commons. Despite the legal considerations sustainable approaches were used to scrape the data. First of all scraping was conducted during the night to avoid overloading the page in times when it is frequently used. Second a waiting time 30 seconds was chosen before scraping a new time frame to ensure not to burden the webpage to much.
 
 ## Data cleaning
 To make the data useful for further analysis cleaning is necessary. We use the before constructed combined data frame of the 61 two month time spans which was already cleaned to include only distinct rows. In a next step all rows containing missing values in the speaker name column are deleted as they are not speeches in debates but descriptions or commentaries that follow the same logic in the source code of the website and are thus scraped as well. 
@@ -293,34 +323,9 @@ As parliamentary debates often follow unwritten rules and some sentences might o
 
 To conduct an analysis depending on the speaker party the party of the speaker has to be identified. Unfortunately on the website the party is not clearly indicated. Looking at the data we see 1436 distinct values for the parties. This is reduced by implementing a new column that includes the Party, Minister, Speaker, Shadow Minister, depending on if a substring of one of these exists. Then individuals with multiple matches are further analysed. If a party is one of the matches, that party is chosen. If there are no parties in the description, the names are gathered and parties are hand coded to the politicians and added to the final column. Speaker is the only non party in the column as they have to be non-partisan in their role.
 
-A further formality of the House of commons is to instigate a motion by starting with "I beg to move,..." (cf. UK Parliament a)). As this would influence the sentiment of a speech the substring is deleted if it appears.
+A further formality of the House of Commons is to instigate a motion by starting with "I beg to move,..." (cf. UK Parliament a)). As this would influence the sentiment of a speech the substring is deleted if it appears.
 
 Finally a further column is created including Government or Opposition depending on the parties of the speaker being in the government or in opposition. 
-
-```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
-
-library("tidyverse")
-library("httr")
-library("jsonlite")
-library("rvest")
-library("xml2")
-library("glue")
-library("data.table")
-library("rvest")
-library("xml2")
-library("glue")
-library("data.table")
-library("quanteda")
-library("topicmodels")
-library(readxl)
-library(tm)
-library(tidytext)
-library(dplyr)
-library(lubridate)    # for date conversion in data cleaning
-library(udpipe)    # for POS tagging
-library(spacyr)    # for POS tagging
-library(writexl)    # to write xlsx
-```
 
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 #############################
@@ -548,10 +553,10 @@ print(Gov_plot)
 
 Comparing the topics by positions of the MPs surprisingly does not show a big difference. This is understandable as debates often are concerned with certain topics thus the most frequent words are likely presenting the topics that were discussed frequently in the parliament.
 
-## Sentiments
-Sentiment analysis is a technique used to determine the emotional tone (positive, negative or neutral) of a digital text, in our case parliamental speeches. For most cases, it is conducted by a rule-based or a machine learning approach. While the latter can be used to understand more complex and interesting concepts, it nowadays often utilizes deep learning and other complex methods that go beyond the concepts learned in the course and the purpose of this project. Thus, while we acknowledge that determining the sentiment of a text (speech) is also not a simple task, we will use the rule-based (or dictionary based) approach with a custom lexicon created from a corpus of parliamentary debates (**in UK etc.**) by Rheault et al. (2016). Using a domain-specific sentiment dictionary is important because lexicons attuned on different domains than the ones they are used for often perform poorly in sentiment analysis tasks.
+## Sentiment Analysis
+Sentiment analysis is a technique used to determine the emotional tone (positive, negative or neutral) of a digital text, in our case parliamental speeches. For most cases, it is conducted by a rule-based or a machine learning approach. While the latter can be used to understand more complex and interesting concepts, it nowadays often utilizes deep learning and other complex methods that go beyond the concepts learned in the course and the purpose of this project. Thus, while we acknowledge that determining the sentiment of a text (speech) is also not a simple task, we will use the rule-based (or dictionary based) approach with a custom lexicon created from a corpus of parliamentary debates in the House of Commons by Rheault et al. (2016). Using a domain-specific sentiment dictionary is important because lexicons attuned on different domains than the ones they are used for often perform poorly in sentiment analysis tasks.
 
-We inspect the first few rows of the sentiment lexicon (available on the authors' [GitHub repository](https://github.com/lrheault/emotion?tab=readme-ov-file)) in Table (**reference**) and see that the sentiments are not simply assigned to words (to be more specific, lemmas) but to the combination of lemmas and their Part-of-Speech (POS) tag. While other popular dictionaries [**Maybe reference a few here? or later?**] often match sentiments only to the words, we see that this approach is already more sophisticated - Combining it with the fact that the lexicon was constructed from political texts, we can be hopeful that our method will capture the real sentiment of the speeches better. Rheault et al. (2016) refer to sentiment as "emotional polarity", hence the column 'polarity' in the table below, but they can be used interchangeably. The dictionary contains sentiments for 4200 words (lemmas) in the range of [-1, 1], -1 being most negative and 1 being most positive with an equal number of positive and negative sentiments (2100-2100). For more details about how the lexicon was constructed and polarities assigned, we refer to the original paper (**reference it again?**).
+We inspect the first few rows of the sentiment lexicon (available on the authors' [GitHub repository](https://github.com/lrheault/emotion?tab=readme-ov-file)) in the table below and see that the sentiments are not simply assigned to words (to be more specific, lemmas) but to the combination of lemmas and their Part-of-Speech (POS) tag. While other popular dictionaries such as VADER (Hutto and Gilbert 2014), the Liu and Hu Lexicon (Hu and Liu 2004) or AFINN-111 (Nielsen 2011) often match sentiments only to the words, we see that this approach is already more sophisticated - Combining it with the fact that the lexicon was constructed from political texts, we can be hopeful that our method will capture the real sentiment of the speeches better. Rheault et al. (2016) refer to sentiment as "emotional polarity", hence the column 'polarity' in the table below, but they can be used interchangeably. The dictionary contains sentiments for 4200 words (lemmas) in the range of [-1, 1], -1 being most negative and 1 being most positive with an equal number of positive and negative sentiments (2100-2100). For more details about how the lexicon was constructed and polarities assigned, we refer to the original paper.
 ```{r sentiment-table, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 # Load the lexicon from Rheault et al. (2016)
 sentiment_lexicon <- read.csv("lexicon-polarity.csv")
@@ -561,6 +566,7 @@ sentiment_lexicon %>% select(-seed) -> sentiment_lexicon
 
 knitr::kable(head(sentiment_lexicon), caption = "Observations form the lexicon of Rheault et al. (2016)")
 ```
+### Lemmaitazion and Part-of-Speech tagging
 Lemmatization is the process of finding the root (called lemma) of a word and is useful in computational linguistics because by analyzing various inflected forms of a word as a single item, text processing models can equate morphologically related words. POS tagging learns the linguistic category (noun/verb/adverb/etc.) of a word (called part of speech) and assigns it to the token. It is useful since the same word can have different meanings in different contexts (and thus, also different sentiments). In fact, the previously introduced dictionary we use indeed contains countless examples of the same lemma with different POS tags and sentiments.
 
 Both methods require to understand the meaning of the words not just by themselves, but also within the larger context of the surrounding sentence, or even the whole document. This is not an easy task, and is often done by machine learning algorithms or nowadays deep learning. Our purpose with this project is not to train a lemmatizer and POS tagger model on our own corpora, so we will use a pre-trained one.
@@ -607,6 +613,7 @@ pos_validation_UDPipe <- udpipe_annotate(m_eng_loaded, x = sampled_speeches$text
 pos_validation_UDPipe %>% write_xlsx("pos_validation_UDPipe.xlsx")
 #pos_validation_spacy %>% write_xlsx("pos_validation_spacy.xlsx")
 ```
+### Mapping POS tags
 As the following lines shows, the POS tags form UDPipe are different from those in the sentiment dictionary. In the next step, we need to create a mapping between them.
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 unique(pos$upos)
@@ -650,6 +657,7 @@ sentiment_lexicon %>%
                           pos1 == 'r' ~ 'ADV',
                           pos1 == 'u' ~ 'INTJ')) -> sentiment_lexicon
 ```
+### Calculating the average sentiment over time
 We can now match sentiments from the dictionary to the words in the speeches. Following the paper of Rheault et al. (2016), the overall sentiment in the House of Commons at a given time or over a time period is calculated in the following way:
 $$
 y_t = \frac{\sum_{i=1}^{n_t} I\{w_{it} \in L\} \cdot s_i \cdot \theta_{it}}{\sum_{i=1}^{n_t} I\{w_{it} \in L\}}
@@ -693,21 +701,32 @@ df_clean %>%
   # Replace NA values with 0 in the sentiment_sum and sentiment_count columns
   mutate(across(c(sentiment_sum, sentiment_count), ~ replace_na(.x, 0))) -> df_clean
 ```
-Validation - take again the sample of 100 speeches, manually validate all words and their sentiment whether we think it's correct given the context of the whole speech/sentence.
+To validate the average sentiment of the debates, we take a random sample of 100 speeches, and manually assign a *positive*, *neutral* or *negative* sentiment to each based on their contents. As opposed to the computational sentiment analysis process, we do not look at every word, assess its sentiment based on our own feelings and sum then average them over a speech but we look at each speech as a whole and try to assess its sentiment overall. This is then compared with the average sentiment calculated by the previously shown formula for each speech.
+
+Speeches in our sample would consist of multiple sentences and often paragraphs and assessing the polarity of such texts with one single sentiment without any rules is utterly complex. We tended to assign a *positive* sentiment to speeches that were more positive than usual compared to the previously read speeches, *negative* to those that were more negative, and *neutral* to speeches that felt to have an "average" polarity. Such a categorization of sentiments make more sense to be compared to centralized sentiment scores obtained from the computational analysis, where a positive value would mean above average- , a negative value would mean below average- and values around 0 would mean neutral sentiments. 95% of speeches labeled as *positive* had a positive centralized polarity score meaning they had above-average sentiment and 68% of speeches labeled as *negative* had a negative centralized polarity score meaning they had below-average sentiment. This shows that our dictionary based method is is fairly good in separating positive (or more positive than average) speeches from negative ones. On the other hand, we observe that it has troubles separating neutral speeches from positive and negative.
+
+To obtain an accuracy of the model, we have to convert the scores returned by the sentiment analysis that lie between [-1, 1] to *positive*, *neutral* or *negative* sentiments based on some thresholds. The average centralized sentiment lies between [-1.39, 0.61] and is distributed roughly normally. To calculate the thresholds for the different categories, we shrink the domain of the centralized sentiments to values closer than 2 standard deviations away from the mean to remove outliers, and then split into three equal parts. The splitting points are then the thresholds between sentiment categories. Using this approach, the accuracy of the sentiment analysis on the sample is 59%. This is better than random guessing but far from perfect.
+
+The results show that sentiment analysis using a lexicon can be useful in indicating the sentiment of speeches but we have to treat any finding with caution. At this point we note that while we did not compare our dictionary to other popular ones on the internet, those are usually not trained on political texts so we would not expect better results from them. Rheault et al. (2016) did so however in their paper and found that although sentiments differed, the main patterns of polarity change over time remained.
+
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
-# Sample 100 speeches fpr validation
+# Sample 100 speeches for validation
 set.seed(123)    #For reproducibility
 df_clean %>% 
   sample_n(100) %>% 
   mutate(average_sentiment = ifelse(sentiment_count == 0, 0, sentiment_sum/sentiment_count),
          standardized_sentiment = scale(average_sentiment)) %>%
+  # Write to Excel and validate manually in it
   write_xlsx("sentiment_validation.xlsx")
 ```
 
 # Results
-The following sections will show the found results of the sentiment analysis. First the temporal evolution of the sentiments is shown on a debate, quaterly, and yearly level. Then the difference between the sentiments of the Opposition and Government is looked at in more detail, and finally three main topics of the EU-UK relations are analysed.
+The following sections will show the found results of the sentiment analysis. First the temporal evolution of the sentiments is shown on a debate, quarterly, and yearly level. Then the difference between the sentiments of the Opposition and Government is looked at in more detail, and finally three main topics of the EU-UK relations are analysed.
 
 ## Sentiments over time
+The following figures show the emotional polarity in the House of Commons during EU-related debates over time. To make patterns more prevalent, we add smoothing lines as well to the plots.
+
+The first plot below shows us the most granular view on sentiments, by the dates of the debates. While some fluctuation is inevitable in the sentiments, at first glance it seems like the emotional polarity moves in an even range around its average and we cannot see the increasing trend over time reported by Rheault et al. (2016). Nevertheless, it is interesting to calculate the average sentiment in the debates before the referendum to leave the EU (23 June 2016), between the official Brexit (31 January 2020), and after the withdrawal. The average sentiment in debates before the referendum was 0.3792, between the referendum and Brexit it was 0.3871 and after Brexit it was 0.3874. While these seem to be small differences, ANOVA shows that the difference between before referendum and after Brexit, as well as before referendum and between it and Brexit is significant on 5% level.
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Visualize as in the paper
 mblue <- "#002A48"
@@ -725,24 +744,33 @@ df_clean %>%
   geom_line(aes(y = sentismooth), size = 2, colour=mblue) +
   xlab("Date") +
   ylab('Sentiment') +
+  scale_y_continuous(limits = c(0.15,0.62)) +
   theme_minimal()
 
-# Visualize the sentiment by date - standardized data, as in paper
-df_clean %>% 
-  group_by(debate_date) %>% 
-  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
-                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
-  mutate(standardized_sentiment = scale(average_sentiment),
-         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>%
-  ggplot(aes(x = debate_date)) +
-  geom_line(aes(y = standardized_sentiment), size = .1, colour=pblue) +
-  geom_point(aes(y = standardized_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
-  geom_line(aes(y = sentismooth), size = 2, colour=mblue) +
-  xlab("Date") +
-  ylab('Sentiment') +
-  # scale_y_continuous(limits = c(-3,3)) +
-  theme_minimal()
-  
+# Average sentiments in different periods, testing difference
+df_clean %>%
+    mutate(average_sentiment = ifelse(sentiment_count == 0, 0, sentiment_sum / sentiment_count)) %>% 
+    mutate(period = case_when(
+      debate_date <= as.Date("2016-06-23") ~ "Before referendum",
+      debate_date >= as.Date("2016-06-24") & debate_date <= as.Date("2020-01-31") ~ "Between Brexit",
+      debate_date > as.Date("2020-01-31") ~ "After Brexit"
+    )) -> df_clean
+
+df_clean %>% group_by(period) %>%
+  summarise(average_sents = mean(average_sentiment, na.rm = TRUE)) -> period_avgs
+
+period_avgs
+
+# ANOVA
+anova <- aov(average_sentiment ~ period, data = df_clean)
+summary(anova)
+
+TukeyHSD(anova)  
+```
+
+While we do not observe a general increasing trend in sentiment over time, there are some smaller local trends which can be better seen when the data is aggregated quarterly on the figure below. Since our main interest is in the change of sentiment and not its precise value, the polarities are standardized, and thus a negative score indicates below-average sentiment and a positive score indicates above average. It is interesting to note that while the sentiment in the debated dropped to below average in the preceding months of the referendum, it increased rapidly after in the following months. As for the time of official Brexit, the sentiment has been increasing for two quarters preceding it, which then slowly decreased in the following months and quarters.
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Visualize the sentiment by quarter - standardized data, as in paper
 df_clean %>% 
   mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
@@ -762,8 +790,7 @@ df_clean %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-
-
+Aggregating the data on a yearly level shows the overall trend of sentiments in the UK parliament on topics related to the EU. The shown data is standardized. In the first years until 2017 a clear upwards trend can be observed indicating more positive sentiments. Between 2018 and 2022 the data however changes drastically between the years, going from its lowest in 2019 to second highest in 2020.
 
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Visualize the sentiment by year - standardized data, as in paper
@@ -790,11 +817,7 @@ knitr::kable(Values_by_year, caption = "Not Standardized Sentiment Value by Year
 
 ```
 
-
-Aggregating the data on a yearly level shows the overall trend of sentiments in the UK parliament on topics related to the EU. The shown data is standardized. In the first years until 2017 a clear upwards trend can be observed indicating more positive sentiments. Between 2018 and 2022 the data however changes drastically between the years, going from its lowest in 2019 to second highest in 2020.
-
-
-## Sentiment by Government - opposition
+## Sentiment by Government - Opposition
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Plot by Government-Opposition sentiment
 df_clean %>% 
@@ -837,7 +860,7 @@ On an aggregated level the controversial topic does not change the trend in sent
 
 
 ## Sentiment by Subtopics
-As the data includes every possible debate which mentions the EU a lot of the debates could be about trivial topics and general agreement to uncontroversial laws. As this could lead to a generally more favourable sentiment in the debates a further filter is applied. The filter is topic specific and only includes debates about the topic Brexit, Economy, and Migration as these were main and controversial talking points in the relationship with the EU in the observed time frame. The data was gathered by hand coding a binary variable for every debate using the debate title, the first speech and if necessary the whole debate. The three topics where chosen as they stand as an example for important subtopics in the relations between the EU and the UK.  
+As the data includes every possible debate which mentions the EU, a lot of the debates could be about trivial topics and general agreement to uncontroversial laws. As this could lead to a generally more favourable sentiment in the debates a further filter is applied. The filter is topic specific and only includes debates about the topic Brexit, Economy, and Migration as these were main and controversial talking points in the relationship with the EU in the observed time frame. The data was gathered by hand coding a binary variable for every debate using the debate title, the first speech and if necessary the whole debate. The three topics where chosen as they stand as an example for important subtopics in the relations between the EU and the UK.  
 
 A debate was decided to be about Brexit if it fell in one of three categories. First if the debate was about the specifics of the withdrawal from the EU. Second if the debate was about direct negotiations with EU counterparts or debates about these. For example “Leaving the Eu: Fisheries Management” a debate about the progress of the negotiations with the EU fishery management. And third if it was about direct effects of leaving the EU as for example “Exiting the EU: Welsh Economy” which discusses the effects of leaving on the Welsh Economy. Not included are discussions about future plans that come after the decision to leave.
 
@@ -936,7 +959,8 @@ Finally also the most controversial but still big enough topics Brexit, Economy,
 
 Given the limitations of the lexicon based approach as well as the causal relations, we can conclude that the sentiment of debates in the British parliament concerning the emotional EU related topics were slightly positive, however did not show a further positive trend. Also every subcategory showed a more positive sentiment right after the vote to leave in 2016 and a decline to previous or worse levels.
 
-#Pitch
+# Pitch
+In this project we analyze the sentiment in the House of Commons in debates related to the European Union during a critical time in the United Kingdom. By doing so, we re-visit the topic of Rheault et al. (2016) in a later and controversial time period, around the Brexit referendum and UK's withdrawal from the EU. Surprisingly, there were no major swings in emotional polarity during the 10 years we analyzed and the overall sentiment was positive, although differences among parties and between topics are observable.
 
 
 
@@ -948,9 +972,15 @@ Helm, T. (2016). British Euroscepticism: a brief history. *The Guardian*. <https
 
 House of Commons Library. (2016). *Analysis of the EU Referendum results 2016*. <https://commonslibrary.parliament.uk/research-briefings/cbp-7639/>. Accessed 21.08.2024
 
+Hu, M., & Liu, B. (2004). Mining and summarizing customer reviews. *Proceedings of the 2004 ACM SIGKDD International Conference on Knowledge Discovery and Data Mining - KDD ’04.*
+
+Hutto, C., & Gilbert, E. (2014). VADER: A Parsimonious Rule-Based Model for Sentiment Analysis of Social Media Text. *Proceedings of the International AAAI Conference on Web and Social Media*, 8(1), 216-225.
+
 Iyengar, S. et al. (2012). Affect, no ideology: A social identity perpective on polarization. *Public opinion quaterly*, 76(3), 405-431
 
 Murphy, M. (2021). Northern Ireland and Brexit: where sovereignty and stability collide?. *Journal of Contemporary European Studies*, 29(3), 405-418
+
+Nielsen, F. (2011). *A new anew: Evaluation of a word list for sentiment analysis in microblogs.*
 
 mySociety. *Hello, we're mySociety*. <https://www.mysociety.org/about/>. Accessed 30.08.2024
 
