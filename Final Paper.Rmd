@@ -545,7 +545,7 @@ for (plot in plots) {
 
 Comparing the topics by positions of the MPs surprisingly does not show a big difference. This is understandable as debates often are concerned with certain topics thus the most frequent words are likely presenting the topics that were discussed frequently in the parliament.
 
-## Sentiments
+## Sentiment Analysis
 Sentiment analysis is a technique used to determine the emotional tone (positive, negative or neutral) of a digital text, in our case parliamental speeches. For most cases, it is conducted by a rule-based or a machine learning approach. While the latter can be used to understand more complex and interesting concepts, it nowadays often utilizes deep learning and other complex methods that go beyond the concepts learned in the course and the purpose of this project. Thus, while we acknowledge that determining the sentiment of a text (speech) is also not a simple task, we will use the rule-based (or dictionary based) approach with a custom lexicon created from a corpus of parliamentary debates (**in UK etc.**) by Rheault et al. (2016). Using a domain-specific sentiment dictionary is important because lexicons attuned on different domains than the ones they are used for often perform poorly in sentiment analysis tasks.
 
 We inspect the first few rows of the sentiment lexicon (available on the authors' [GitHub repository](https://github.com/lrheault/emotion?tab=readme-ov-file)) in Table (**reference**) and see that the sentiments are not simply assigned to words (to be more specific, lemmas) but to the combination of lemmas and their Part-of-Speech (POS) tag. While other popular dictionaries [**Maybe reference a few here? or later?**] often match sentiments only to the words, we see that this approach is already more sophisticated - Combining it with the fact that the lexicon was constructed from political texts, we can be hopeful that our method will capture the real sentiment of the speeches better. Rheault et al. (2016) refer to sentiment as "emotional polarity", hence the column 'polarity' in the table below, but they can be used interchangeably. The dictionary contains sentiments for 4200 words (lemmas) in the range of [-1, 1], -1 being most negative and 1 being most positive with an equal number of positive and negative sentiments (2100-2100). For more details about how the lexicon was constructed and polarities assigned, we refer to the original paper (**reference it again?**).
@@ -558,6 +558,7 @@ sentiment_lexicon %>% select(-seed) -> sentiment_lexicon
 
 knitr::kable(head(sentiment_lexicon), caption = "Observations form the lexicon of Rheault et al. (2016)")
 ```
+### Lemmaitazion and Part-of-Speech tagging
 Lemmatization is the process of finding the root (called lemma) of a word and is useful in computational linguistics because by analyzing various inflected forms of a word as a single item, text processing models can equate morphologically related words. POS tagging learns the linguistic category (noun/verb/adverb/etc.) of a word (called part of speech) and assigns it to the token. It is useful since the same word can have different meanings in different contexts (and thus, also different sentiments). In fact, the previously introduced dictionary we use indeed contains countless examples of the same lemma with different POS tags and sentiments.
 
 Both methods require to understand the meaning of the words not just by themselves, but also within the larger context of the surrounding sentence, or even the whole document. This is not an easy task, and is often done by machine learning algorithms or nowadays deep learning. Our purpose with this project is not to train a lemmatizer and POS tagger model on our own corpora, so we will use a pre-trained one.
@@ -604,6 +605,7 @@ pos_validation_spacy <- spacy_parse(sampled_speeches$text, lemma = TRUE, pos = T
 pos_validation_UDPipe %>% write_xlsx("pos_validation_UDPipe.xlsx")
 pos_validation_spacy %>% write_xlsx("pos_validation_spacy.xlsx")
 ```
+### Mapping POS tags
 As the following lines shows, the POS tags form UDPipe are different from those in the sentiment dictionary. In the next step, we need to create a mapping between them.
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 unique(pos$upos)
@@ -647,6 +649,7 @@ sentiment_lexicon %>%
                           pos1 == 'r' ~ 'ADV',
                           pos1 == 'u' ~ 'INTJ')) -> sentiment_lexicon
 ```
+### Calculating the average sentiment over time
 We can now match sentiments from the dictionary to the words in the speeches. Following the paper of Rheault et al. (2016), the overall sentiment in the House of Commons at a given time or over a time period is calculated in the following way:
 $$
 y_t = \frac{\sum_{i=1}^{n_t} I\{w_{it} \in L\} \cdot s_i \cdot \theta_{it}}{\sum_{i=1}^{n_t} I\{w_{it} \in L\}}
@@ -690,18 +693,30 @@ df_clean %>%
   # Replace NA values with 0 in the sentiment_sum and sentiment_count columns
   mutate(across(c(sentiment_sum, sentiment_count), ~ replace_na(.x, 0))) -> df_clean
 ```
-Validation - take again the sample of 100 speeches, manually validate all words and their sentiment whether we think it's correct given the context of the whole speech/sentence.
+To validate the average sentiment of the debates, we take a random sample of 100 speeches, and manually assign a *positive*, *neutral* or *negative* sentiment to each based on their contents. As opposed to the computational sentiment analysis process, we do not look at every word, assess its sentiment based on our own feelings and sum then average them over a speech but we look at each speech as a whole and try to assess its sentiment overall. This is then compared with the average sentiment calculated by the previously shown formula for each speech.
+
+Speeches in our sample would consist of multiple sentences and often paragraphs and assessing the polarity of such texts with one single sentiment without any rules is utterly complex. We tended to assign a *positive* sentiment to speeches that were more positive than usual compared to the previously read speeches, *negative* to those that were more negative, and *neutral* to speeches that felt to have an "average" polarity. Such a categorization of sentiments make more sense to be compared to centralized sentiment scores obtained from the computational analysis, where a positive value would mean above average- , a negative value would mean below average- and values around 0 would mean neutral sentiments. 95% of speeches labeled as *positive* had a positive centralized polarity score meaning they had above-average sentiment and 68% of speeches labeled as *negative* had a negative centralized polarity score meaning they had below-average sentiment. This shows that our dictionary based method is is fairly good in separating positive (or more positive than average) speeches from negative ones. On the other hand, we observe that it has troubles separating neutral speeches from positive and negative.
+
+To obtain an accuracy of the model, we have to convert the scores returned by the sentiment analysis that lie between [-1, 1] to *positive*, *neutral* or *negative* sentiments based on some thresholds. The average centralized sentiment lies between [-1.39, 0.61] and is distributed roughly normally. To calculate the thresholds for the different categories, we shrink the domain of the centralized sentiments to values closer than 2 standard deviations away from the mean to remove outliers, and then split into three equal parts. The splitting points are then the thresholds between sentiment categories. Using this approach, the accuracy of the sentiment analysis on the sample is 59%. This is better than random guessing but far from perfect.
+
+The results show that sentiment analysis using a lexicon can be useful in indicating the sentiment of speeches but we have to treat any finding with caution. At this point we note that while we did not compare our dictionary to other popular ones on the internet, those are usually not trained on political texts so we would not expect better results from them. Rheault et al. (2016) did so however in their paper and found that although sentiments differed, the main patterns of polarity change over time remained.
+
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
-# Sample 100 speeches fpr validation
+# Sample 100 speeches for validation
 set.seed(123)    #For reproducibility
 df_clean %>% 
   sample_n(100) %>% 
   mutate(average_sentiment = ifelse(sentiment_count == 0, 0, sentiment_sum/sentiment_count),
          standardized_sentiment = scale(average_sentiment)) %>%
+  # Write to Excel and validate manually in it
   write_xlsx("sentiment_validation.xlsx")
 ```
 
-Results/visualizations
+### Results
+
+The following figures show the emotional polarity in the House of Commons during EU-related debates over time. The figures show the change in sentiments in different granularity - daily, quarterly and yearly. To make patterns more prevalent, we add smoothing lines as well to the plots.
+
+The first plot below shows us the most granular view on sentiments, by the dates of the debates. While some fluctuation is inevitable in the sentiments, at first glance it seems like the emotional polarity moves in an even range around its average and we cannot see the increasing trend over time reported by Rheault et al. (2016). The speeches from the 6th March 2014 contained no lemmas from the lexicon 
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Visualize as in the paper
 mblue <- "#002A48"
@@ -719,6 +734,7 @@ df_clean %>%
   geom_line(aes(y = sentismooth), size = 2, colour=mblue) +
   xlab("Date") +
   ylab('Sentiment') +
+  scale_y_continuous(limits = c(0.15,0.62)) +
   theme_minimal()
 
 # Visualize the sentiment by date - standardized data, as in paper
@@ -734,7 +750,7 @@ df_clean %>%
   geom_line(aes(y = sentismooth), size = 2, colour=mblue) +
   xlab("Date") +
   ylab('Sentiment') +
-  # scale_y_continuous(limits = c(-3,3)) +
+  scale_y_continuous(limits = c(-3.5,4)) +
   theme_minimal()
   
 # Visualize the sentiment by quarter - standardized data, as in paper
@@ -874,7 +890,6 @@ df_clean %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
 ```
-# Plot by Government-Opposition sentiment
 
 ## References
 

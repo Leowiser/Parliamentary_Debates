@@ -400,3 +400,54 @@ df_clean %>%
         legend.key = element_blank())
 
 
+
+
+
+df_clean %>% 
+  group_by(debate_date, Government_Opposition) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
+  pivot_wider(names_from = Government_Opposition, values_from = average_sentiment) %>% 
+  select(-'NA') %>%
+  ungroup() %>% view()
+  mutate(sentismooth_government = smooth.spline(Government, spar = 0.5)$y,
+         sentismooth_opposition = smooth.spline(Opposition, spar = 0.5)$y) %>%
+  ggplot(aes(x = debate_date)) +
+  geom_line(aes(y = Government), size = .1, colour="#3F5F75") +
+  geom_point(aes(y = Government), size = 6, colour="#3F5F75", shape=1, stroke=.25) +
+  geom_line(aes(y = Opposition), size = .1, colour="#3FA8C3") +
+  geom_point(aes(y = Opposition), size = 6, colour="#3FA8C3", shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_government, colour="Government"), size = 2) +
+  geom_line(aes(y = sentismooth_opposition, colour="Opposition"), size = 2) +
+  scale_colour_manual(name="", values=c(Government="#002A48",Opposition="#008BB0")) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position=c(0.4,0.2),
+        legend.text = element_text(size = 10),
+        legend.key.height=unit(1.5,"line"),
+        legend.key.size=unit(2.5,"line"),
+        legend.key = element_blank())
+
+
+  
+  
+  
+  
+  top_5 <- df_clean %>% 
+    group_by(debate_date) %>% 
+    summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                         sum(sentiment_sum)/sum(sentiment_count))) %>%
+    slice_max(order_by = average_sentiment, n = 5)
+  
+  bottom_5 <- df_clean %>% 
+    group_by(debate_date) %>% 
+    summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                         sum(sentiment_sum)/sum(sentiment_count))) %>%
+    slice_min(order_by = average_sentiment, n = 5)
+  
+  result <- bind_rows(top_5, bottom_5)
+  
+  result
+  
