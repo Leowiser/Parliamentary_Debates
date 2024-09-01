@@ -512,6 +512,7 @@ combined_plot <- ggplot(top_words_combined, aes(x = reorder(word, n), y = n)) +
 
 print(combined_plot)
 ```
+
 To investigate the further data we look at the most used words in the data frame first by year and then by year and belonging to either Opposition or Government.
 
 It is clear to see that referendum pops up first in 2013 and then in 2015 and 2016 again. In the years 2018 and 2019 the deal with the EU became more important. Overall, it is clear, that Brexit is the most important topic during the years
@@ -537,6 +538,7 @@ Gov_plot <- ggplot(filtered_words, aes(x = reorder(word, n), y = n)) +
 
 print(Gov_plot)
 ```
+
 Comparing the topics by positions of the MPs surprisingly does not show a big difference. This is understandable as debates often are concerned with certain topics thus the most frequent words are likely presenting the topics that were discussed frequently in the parliament.
 
 ## Sentiments
@@ -575,9 +577,7 @@ pos <- udpipe_annotate(m_eng_loaded, x = df_clean$text) %>%
 # Save data frame for later use
 save(pos, file = "pos.RData")
 ```
-We validate the performance of the lemmatizer and POS tagger by taking a random sample of speeches, conducting lemmatization and POS tagging manually on each token by ourselves and comparing them with those obtained by the pre-trained models of UDPipe and SpaCy.
-
-[Discuss validation results here]
+We validate the performance of the lemmatizer and POS tagger by taking a random sample of speeches, conducting lemmatization and POS tagging manually on each token by ourselves and comparing them with those obtained by the pre-trained models of UDPipe and SpaCy. We coded a total of 1400 tokens manually, 98.5% of lemmas matched with the lemmas created by UDPipe and 99.1% of the POS tags matched with those from UDPipe. These results are as good as what we can expect from any model, leading us to be satisfied with UDPipe's pre-trained model. SpaCy palso roduces similarly strong results with differences being mostly irrelevant (e.g., one model lemmatizing 'an' as 'a' while the other keeps it as 'an', etc.). What made us choose UDPipe over SpaCy is that the latter splits compound words separated by hyphens into multiple lemmas, whereas UDPipe does not - While one could argue that splitting is the correct approach, such words are treated as one lemma in the sentiment lexicon (e.g. co-operation, high-quality, etc.) which means we could not assign a sentiment to these words if we used SpaCy's model.
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Load the POS tagged data and model
 load("pos.RData")
@@ -631,7 +631,7 @@ maptable <- data.frame(
   check.names = FALSE
 )
 
-knitr::kable(maptable, caption = "Mapping table of POS tags")
+knitr::kable(maptable, caption = "Mapping guidance for POS tags")
 ```
 
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
@@ -643,7 +643,11 @@ sentiment_lexicon %>%
                           pos1 == 'r' ~ 'ADV',
                           pos1 == 'u' ~ 'INTJ')) -> sentiment_lexicon
 ```
-Now we can match the sentiments from the dictionary to the words in the speeches. And calculate the sentiment of each speech following the method described in the paper.
+We can now match sentiments from the dictionary to the words in the speeches. Following the paper of Rheault et al. (2016), the overall sentiment in the House of Commons at a given time or over a time period is calculated in the following way:
+$$
+y_t = \frac{\sum_{i=1}^{n_t} I\{w_{it} \in L\} \cdot s_i \cdot \theta_{it}}{\sum_{i=1}^{n_t} I\{w_{it} \in L\}}
+$$
+Where $w_{it}$ are the lemmas in the speeches during period *t*, $I\{w_{i} \in L\}$ is an indicator function equaling 1 if $w_{i}$ is present in the sentiment lexicon and 0 otherwise, $s_{i}$ is the polarity score in the dictionary associated with lemma *i*, $\theta_{it}$ is a parameter measuring the valence of lemma *i* in the speeches during period *t*, and $n_{t}$ is the total number of lemmas in the speeches during period *t*. The valence parameter takes 0 if $w_{it}$ is located between a negating word (*not*, *no*, *never*, *neither* and *nor*) and a punctuation and 1 otherwise, this way cancels attributing sentiments to expressions such as "not satisfied", "no benefit" and so on. To summarize the formula in one sentence, we take the sum of sentiments for lemmas that were also present in the lexicon but were not between a negating word and a punctuation in the speeches, and divide this by the number of such lemmas over the time period of interest. The division with the count of matched lemmas account for the biases of long speeches having more lemmas and potentially higher sentiment while short speeches having fewer.
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Create a lookup table that store the sentiments of each speech
 negating_words <- c("not", "no", "never", "neither", "nor")
@@ -684,20 +688,13 @@ df_clean %>%
 ```
 Validation - take again the sample of 100 speeches, manually validate all words and their sentiment whether we think it's correct given the context of the whole speech/sentence.
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
-pos_validation_UDPipe %>%
-  # Last 6 columns not needed
-  select(-tail(names(.), 6)) %>%
-  # Create 'valence' column as defined in the paper
-  mutate(valence = ifelse(lag(lemma) %in% negating_words & lead(upos) == "PUNCT", 0, 1)) %>%
-  # Keep relevant POS tags only
-  filter(upos %in% c('NOUN', 'VERB', 'ADJ', 'ADV', 'INTJ')) %>% 
-  # Map polarity values
-  left_join(sentiment_lexicon, by = c('lemma' = 'lemma', 'upos' = 'pos1')) %>%
-  # Calculate sentiment based on paper
-  mutate(sentiment = polarity*valence) -> sentiment_validation
-
-# Save file for easier manual validation in Excel
-sentiment_validation %>% write_xlsx("sentiment_validation.xlsx")
+# Sample 100 speeches fpr validation
+set.seed(123)    #For reproducibility
+df_clean %>% 
+  sample_n(100) %>% 
+  mutate(average_sentiment = ifelse(sentiment_count == 0, 0, sentiment_sum/sentiment_count),
+         standardized_sentiment = scale(average_sentiment)) %>%
+  write_xlsx("sentiment_validation.xlsx")
 ```
 
 # Results
@@ -768,7 +765,7 @@ df_clean %>%
   summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
                                        sum(sentiment_sum) / sum(sentiment_count))) %>%
   mutate(standardized_sentiment = scale(average_sentiment), 
-         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>% 
+         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>%
   ggplot(aes(x = year, group = 1)) +
   geom_line(aes(y = standardized_sentiment), size = .1, colour = pblue) +
   geom_point(aes(y = standardized_sentiment), size = 6, colour = pblue, shape = 1, stroke = .25) +
@@ -785,6 +782,7 @@ Values_by_year <- df_clean %>%
 knitr::kable(Values_by_year, caption = "Not Standardized Sentiment Value by Year")
 
 ```
+
 
 Aggregating the data on a yearly level shows the overall trend of sentiments in the UK parliament on topics related to the EU. The shown data is standardized. In the first years until 2017 a clear upwards trend can be observed indicating more positive sentiments. Between 2018 and 2022 the data however changes drastically between the years, going from its lowest in 2019 to second highest in 2020.
 
@@ -822,7 +820,76 @@ df_clean %>%
         legend.key = element_blank())
 ```
 
-## Sentiment by subtopics
+## Sentiment by Subtopics
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Plot sentiments by selected topics
+topics_parliament <- read_excel("Topics_Parliament.xlsx")
+
+# Topic - Brexit
+df_clean %>% 
+  left_join(topics_parliament, by = "debate_title") %>%
+  mutate(brexit_sentiment_sum = ifelse(Brexit == 1, sentiment_sum, NA),
+         brexit_sentiment_count = ifelse(Brexit == 1, sentiment_count, NA)) %>% 
+  filter(Brexit == 1) %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(brexit_average_sentiment = 
+              sum(na.omit(brexit_sentiment_sum)) / sum(na.omit(brexit_sentiment_count))) %>%
+  mutate(sentismooth_brexit = smooth.spline(brexit_average_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = brexit_average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = brexit_average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_brexit), size = 2, colour=mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  ggtitle("Topic: Brexit") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Topic - Economic
+df_clean %>% 
+  left_join(topics_parliament, by = "debate_title") %>%
+  mutate(economic_sentiment_sum = ifelse(Economic == 1, sentiment_sum, NA),
+         economic_sentiment_count = ifelse(Economic == 1, sentiment_count, NA)) %>% 
+  filter(Economic == 1) %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(economic_average_sentiment = 
+              sum(na.omit(economic_sentiment_sum)) / sum(na.omit(economic_sentiment_count))) %>%
+  mutate(sentismooth_economic = smooth.spline(economic_average_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = economic_average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = economic_average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_economic), size = 2, colour=mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  ggtitle("Topic: Economic") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Topic - Migration
+df_clean %>% 
+  left_join(topics_parliament, by = "debate_title") %>%
+  mutate(migration_sentiment_sum = ifelse(Migration == 1, sentiment_sum, NA),
+         migration_sentiment_count = ifelse(Migration == 1, sentiment_count, NA)) %>% 
+  filter(Migration == 1) %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(migration_average_sentiment = 
+              sum(na.omit(migration_sentiment_sum)) / sum(na.omit(migration_sentiment_count))) %>%
+  mutate(sentismooth_migration = smooth.spline(migration_average_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = migration_average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = migration_average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_migration), size = 2, colour=mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  ggtitle("Topic: Migration") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+```
+
 To delve deeper into the analysis of the sentiments on the debates further filters are applied. The filters are topic specific and only include debates about the topic Brexit, Economy, and Migration. The data was gathered by hand coding a binary variable for every debate using the debate title, the first speech and if necessary the whole debate. The three topics where chosen as they stand as an example for important subtopics in the relations between the EU and the UK.  
 
 A debate was decided to be about Brexit if it fell in one of three categories. First if the debate was about the specifics of the withdrawal from the EU. Second if the debate was about direct negotiations with EU counterparts or debates about these. For example “Leaving the Eu: Fisheries Management” a debate about the progress of the negotiations with the EU fishery management. And third if it was about direct effects of leaving the EU as for example “Exiting the EU: Welsh Economy” which discusses the effects of leaving on the Welsh Economy. Not included are discussions about future plans that come after the decision to leave.
@@ -832,13 +899,12 @@ Migration includes every debate that is directly connected to migrants and migra
 Economy includes every debate that discusses economic topics and effects on the economy. However it does not include debates about specific niche industries as for example the “Welsh Sheep Meat Trade”.
 
 
-
 # Limitations
 When working with lexicon based approaches for sentiment analysis the strict rules it follows makes it perform poorly in comparison to machine learning or manual coding approaches (cf. p.128 f. van Atteveldt et. al (2021)). Therefore, this paper made use of a topic specific lexicon and tried to overcome the problem of negated sentences. Still, during validation it was obvious that sarcastic speeches are not unusual and will impact the sentiment analysis. Also very complex sentence structures which are common in parliamentary debates can change the sentiment of the speech. Validation showed non the less an okay precision leading to confidence in our results on an aggregated level. Individual speeches however could be easily misspecified and the analysis only works with sufficiently large data.
 
 Furthermore, our paper does a good job in showing the trends of the sentiments related to EU topics. But it fails to show causal relations. Our results therefore do not show what caused the difference in sentiments but rather that they exist. This is also the scope of our proposed questions should however trigger further research to show the reasons for possible sentiment changes in the debate.
 
-# References
+## References
 
 Benoit, K., & Matsuo, A. (2023). spacyr: Wrapper to the 'spaCy' 'NLP' Library. https://CRAN.R-project.org/package=spacyr
 
