@@ -511,6 +511,7 @@ combined_plot <- ggplot(top_words_combined, aes(x = reorder(word, n), y = n)) +
 
 print(combined_plot)
 ```
+
 To investigate the further data we look at the most used words in the data frame first by year and then by year and belonging to either Opposition or Government.
 
 It is clear to see that referendum pops up first in 2013 and then in 2015 and 2016 again. In the years 2018 and 2019 the deal with the EU became more important. Overall, it is clear, that Brexit is the most important topic during the years
@@ -541,6 +542,7 @@ for (plot in plots) {
 
 
 ```
+
 Comparing the topics by positions of the MPs surprisingly does not show a big difference. This is understandable as debates often are concerned with certain topics thus the most frequent words are likely presenting the topics that were discussed frequently in the parliament.
 
 ## Sentiments
