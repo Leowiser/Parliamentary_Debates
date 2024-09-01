@@ -353,3 +353,50 @@ df_clean %>%
         legend.key.height=unit(1.5,"line"),
         legend.key.size=unit(2.5,"line"),
         legend.key = element_blank())
+
+
+
+
+# Plot sentiments by selected topics
+topics_parliament <- read_excel("Topics_Parliament.xlsx")
+
+# Join topics to speeches
+df_clean %>% 
+  left_join(topics_parliament, by = "debate_title") %>%
+  mutate(brexit_sentiment_sum = ifelse(Brexit == 1, sentiment_sum, NA),
+         brexit_sentiment_count = ifelse(Brexit == 1, sentiment_count, NA),
+         economic_sentiment_sum = ifelse(Economic == 1, sentiment_sum, NA),
+         economic_sentiment_count = ifelse(Economic == 1, sentiment_count, NA),
+         migration_sentiment_sum = ifelse(Migration == 1, sentiment_sum, NA),
+         migration_sentiment_count = ifelse(Migration == 1, sentiment_count, NA)) %>%
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(brexit_average_sentiment = 
+              sum(na.omit(brexit_sentiment_sum)) / sum(na.omit(brexit_sentiment_count)),
+            economic_average_sentiment = 
+              sum(na.omit(economic_sentiment_sum)) / sum(na.omit(economic_sentiment_count)),
+            migration_average_sentiment = 
+              sum(na.omit(migration_sentiment_sum)) / sum(na.omit(migration_sentiment_count))) %>% 
+  # mutate(across(everything(), ~replace_na(., 0))) %>%
+  # mutate(sentismooth_brexit = smooth.spline(brexit_average_sentiment, spar = 0.5)$y) %>%
+  mutate(quarter = factor(quarter, levels = unique(quarter))) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = brexit_average_sentiment, colour = "brexit"), size = 2) +
+  geom_point(aes(y = brexit_average_sentiment), size = 6, colour = mblue, shape = 1, stroke = .25) +
+  geom_line(aes(y = economic_average_sentiment, colour = "economic"), size = 2) +
+  geom_point(aes(y = economic_average_sentiment), size = 6, colour = pblue, shape = 1, stroke = .25) +
+  geom_line(aes(y = migration_average_sentiment, colour = "migration"), size = 2) +
+  geom_point(aes(y = migration_average_sentiment), size = 6, colour = "orange", shape = 1, stroke = .25) +
+  scale_colour_manual(name="", values=c(brexit=mblue, economic=pblue, migration="orange" )) +
+  # geom_line(aes(y = sentismooth_brexit), size = 2, colour = mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position=c(0.5,0.2),
+        legend.text = element_text(size = 10),
+        legend.key.height=unit(1.5,"line"),
+        legend.key.size=unit(2.5,"line"),
+        legend.key = element_blank())
+
+

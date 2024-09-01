@@ -761,7 +761,7 @@ df_clean %>%
   summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
                                        sum(sentiment_sum) / sum(sentiment_count))) %>%
   mutate(standardized_sentiment = scale(average_sentiment), 
-         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>% 
+         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>%
   ggplot(aes(x = year, group = 1)) +
   geom_line(aes(y = standardized_sentiment), size = .1, colour = pblue) +
   geom_point(aes(y = standardized_sentiment), size = 6, colour = pblue, shape = 1, stroke = .25) +
@@ -772,6 +772,8 @@ df_clean %>%
   theme_minimal()
 
 ```
+
+
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Plot by Government-Opposition sentiment
 df_clean %>% 
@@ -803,6 +805,76 @@ df_clean %>%
         legend.key.size=unit(2.5,"line"),
         legend.key = element_blank())
 ```
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Plot sentiments by selected topics
+topics_parliament <- read_excel("Topics_Parliament.xlsx")
+
+# Topic - Brexit
+df_clean %>% 
+  left_join(topics_parliament, by = "debate_title") %>%
+  mutate(brexit_sentiment_sum = ifelse(Brexit == 1, sentiment_sum, NA),
+         brexit_sentiment_count = ifelse(Brexit == 1, sentiment_count, NA)) %>% 
+  filter(Brexit == 1) %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(brexit_average_sentiment = 
+              sum(na.omit(brexit_sentiment_sum)) / sum(na.omit(brexit_sentiment_count))) %>%
+  mutate(sentismooth_brexit = smooth.spline(brexit_average_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = brexit_average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = brexit_average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_brexit), size = 2, colour=mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  ggtitle("Topic: Brexit") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Topic - Economic
+df_clean %>% 
+  left_join(topics_parliament, by = "debate_title") %>%
+  mutate(economic_sentiment_sum = ifelse(Economic == 1, sentiment_sum, NA),
+         economic_sentiment_count = ifelse(Economic == 1, sentiment_count, NA)) %>% 
+  filter(Economic == 1) %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(economic_average_sentiment = 
+              sum(na.omit(economic_sentiment_sum)) / sum(na.omit(economic_sentiment_count))) %>%
+  mutate(sentismooth_economic = smooth.spline(economic_average_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = economic_average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = economic_average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_economic), size = 2, colour=mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  ggtitle("Topic: Economic") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Topic - Migration
+df_clean %>% 
+  left_join(topics_parliament, by = "debate_title") %>%
+  mutate(migration_sentiment_sum = ifelse(Migration == 1, sentiment_sum, NA),
+         migration_sentiment_count = ifelse(Migration == 1, sentiment_count, NA)) %>% 
+  filter(Migration == 1) %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(migration_average_sentiment = 
+              sum(na.omit(migration_sentiment_sum)) / sum(na.omit(migration_sentiment_count))) %>%
+  mutate(sentismooth_migration = smooth.spline(migration_average_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = migration_average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = migration_average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_migration), size = 2, colour=mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  ggtitle("Topic: Migration") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+```
+# Plot by Government-Opposition sentiment
 
 ## References
 
