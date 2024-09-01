@@ -1,0 +1,1006 @@
+---
+title: "Sentiments in the UK Parliament:"
+subtitle: "10 years of debates about the EU"
+author: "Ádám Varkoly (r0823515), Leon Weiser (r0979317)"
+output:
+  html_document:
+    df_print: paged
+  
+date: "`r Sys.Date()`"
+---
+
+# Introduction
+Parliamentary debates are at the heart of every democratic society. Surely the later influences what is discussed in the parliament but research by Iyengar et.al (2012) suggests that the tone of discourse between parties and their campaigns can shape the society by increasing the divide between the different partisan groups as well. Especially emotional topics have a strong influence on such a development.
+
+Interestingly, Rhealut et al. (2016) find in their paper, that the sentiments in parliamentary debates in the UK became more positive in the last century, although there is a perception that society is becoming more divided. Their research considers every debate between 1909 and 2013 in the House of Commons not focusing on especially on an emotional topic that was strongly debated in public and the positive increase could be due to more bureaucratic debates on uncontroversial topics. Thus the following paper takes a look at the sentiments connected to one of the more controversial topics in the British parliament; the European Union (EU) during times of Brexit.
+
+The positive outcome of the British referendum to withdrawal from the EU in 2016 came as a surprise to most other member states of the European Union. With a winning margin of only 3.8% and an overall approval to leave the European Union by 51.9% the decision was conceivably close (House of Commons Library, 2016). This direct democratic approach was relatively unusual especially since the United Kingdom of England and Northern Ireland (UK) has a strong representative democracy in which the sovereignty of the parliament is "the most important part of the UK constitution" (UK Parliament)^[The parliament generally refers to the House of Commons. Thus, in the following text House of Commons and parliament are used interchangeably]. Furthermore, the Prime Minister at the time David Cameron as well as the biggest opposition party very much favoured remaining in the EU and thus disagreeing with the outcome of the referendum (cf. p.445, Russell, 2020). This vast majority for remaining in the EU in the parliament did not only lead to "no proper planning for a Leave vote" (Public Administration and Constitutional Affairs Committee, 2017, p. 4), but also to a clear difference between what most members of parliament (MP) and what the population wanted. 
+
+Russell (2020) raises that the debates about the European Union which overturned deals with the EU multiple times even lead to an anti-parliamentary rhetoric from the Prime Ministers Theresa May as well as Boris Johnson and the Attorney General Geoffrey Cox. Also the news took strong partisanship towards one side with *The Daily Mail* headlining “Enemies of the People” towards the sovereignty of the Parliament (cf. p.520 Rone (2023)).
+
+Although this is not a new development as the UK historically was rather Eurosceptic (cf. Helm (2016)), it definitely makes it a controversial topic.
+
+We thus conduct a sentiment analysis on the debates about the EU from 2012 until 2022 and try to answer the following research questions: 
+
+* How did the sentiment in debates about an emotional topic like the EU changed over time in the House of Commons?
+
+* Is there a significant difference in the sentiments between the opposition and the ruling party?
+
+* Is the sentiment significantly different during debates about highly controversial topics like Brexit?
+
+We aim to do so by first describing our data in detail which we gathered web scrapping parliamentary debates between October 2012 and October 2022. Following we will describe the conducted sentiment analysis using a dictionary build especially for parliamentary debates. The gathered results are discussed based on the time, party, and three main topics; Brexit, Economy, Migration.
+
+Finally we answer the posed research questions in the last section.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data
+To answer the question we need the data of the debates in the British parliament. To gather these parliamentary debates, we web scraped the debates in the House of Commons and Westminster hall from the *TheyWorkForYou* website. *TheyWorkForYou* is run by *mySociety* a British non for profit organization and aims to make the work of the Uk parliament more accessible and transparent to the wider public (cf. TheyWorkForYou, mySociety). In this capacity they also publish a mirrored version of *Hansard* the official webpage for transcripts of UK debates. 
+
+In our work we use *TheyWorkForYou* instead of *Hansard* as the content is exactly the same but *Hansard* uses CloudFlare which makes web scraping significantly more complicated.
+
+### Data collection
+The data we gather include all debates between 25.10.2012 until the 25.10.2022. The time frame is chosen to cover 10 years and cover the years before and after the Referendum as well as official Brexit (31.01.2020). The data is constructed by searching for all debates in the time frame where either the European Union, the European Commission, the European Council, or Brexit was mentioned. These debates are then filtered to only include debates that have European Union, European Commission, European Council, Brexit, European, Europe, or EU (case insensitive) in their title and are no written answers. The web scraping algorithm covers 61 two month periods as previous tries showed that only up to three month time spans could be scraped reliably. Furthermore the date of the debate is saved as well as the name and party/position of the speakers.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+# Set working directory
+setwd("C:/Users/LENOVO/Desktop/iskola stuff/mester stuff/Collecting and Analyzing Big Data for Social Sciences/Group Project")
+
+# load necessary packages
+# install.packages(c("tidyverse", "httr", "glue", "dplyr", "stringr"))
+library(dplyr)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(xml2)
+library(glue)
+library(rvest)
+library(xml2)
+library(glue)
+library(stringr)
+library(jsonlite)
+library(data.table)
+library(quanteda)
+library(topicmodels)
+library(readxl)
+library(tm)
+library(tidytext)
+library(lubridate)
+library(udpipe)
+library(spacyr)
+library(writexl)
+
+```
+
+```{r, eval=FALSE, echo=TRUE}
+# Webscraping
+
+###############################################################
+###          THIS NEEDS AT LEAST 5 HOURS to RUN!!!          ### 
+###############################################################
+
+# Set working directory
+setwd("C:/Users/LENOVO/Desktop/iskola stuff/mester stuff/Collecting and Analyzing Big Data for Social Sciences/Group Project")
+
+# load necessary packages
+# install.packages(c("tidyverse", "httr", "glue", "dplyr", "stringr"))
+library(dplyr)
+library("tidyverse")
+library("httr")
+library("rvest")
+library("xml2")
+library("glue")
+library("rvest")
+library("xml2")
+library("glue")
+library(stringr)
+SearchTerm <- "(\"EU\"+OR+\"European+Commission\"+OR+\"European+Union\"+OR+\"European+Council\"+OR+\"Brexit\")"
+TitleTerms <- c("European Union","European Commission","European Council", "Brexit")
+
+StartDate <- c("2012-10-25", "2012-12-25", "2013-02-25", "2013-04-25", 
+               "2013-06-25", "2013-08-25", "2013-10-25", "2013-12-25", 
+               "2014-02-25", "2014-04-25", "2014-06-25", "2014-08-25", 
+               "2014-10-25", "2014-12-25", "2015-02-25", "2015-04-25", 
+               "2015-06-25", "2015-08-25", "2015-10-25", "2015-12-25", 
+               "2016-02-25", "2016-04-25", "2016-06-25", "2016-08-25", 
+               "2016-10-25", "2016-12-25", "2017-02-25", "2017-04-25", 
+               "2017-06-25", "2017-08-25", "2017-10-25", "2017-12-25", 
+               "2018-02-25", "2018-04-25", "2018-06-25", "2018-08-25", 
+               "2018-10-25", "2018-12-25", "2019-02-25", "2019-04-25", 
+               "2019-06-25", "2019-08-25", "2019-10-25", "2019-12-25", 
+               "2020-02-25", "2020-04-25", "2020-06-25", "2020-08-25", 
+               "2020-10-25", "2020-12-25", "2021-02-25", "2021-04-25", 
+               "2021-06-25", "2021-08-25", "2021-10-25", "2021-12-25", 
+               "2022-02-25", "2022-04-25", "2022-06-25", "2022-08-25", 
+               "2022-10-25")
+
+EndDate <- c("2012-12-25", "2013-02-25", "2013-04-25", "2013-06-25", 
+             "2013-08-25", "2013-10-25", "2013-12-25", "2014-02-25", 
+             "2014-04-25", "2014-06-25", "2014-08-25", "2014-10-25", 
+             "2014-12-25", "2015-02-25", "2015-04-25", "2015-06-25", 
+             "2015-08-25", "2015-10-25", "2015-12-25", "2016-02-25", 
+             "2016-04-25", "2016-06-25", "2016-08-25", "2016-10-25", 
+             "2016-12-25", "2017-02-25", "2017-04-25", "2017-06-25", 
+             "2017-08-25", "2017-10-25", "2017-12-25", "2018-02-25", 
+             "2018-04-25", "2018-06-25", "2018-08-25", "2018-10-25", 
+             "2018-12-25", "2019-02-25", "2019-04-25", "2019-06-25", 
+             "2019-08-25", "2019-10-25", "2019-12-25", "2020-02-25", 
+             "2020-04-25", "2020-06-25", "2020-08-25", "2020-10-25", 
+             "2020-12-25", "2021-02-25", "2021-04-25", "2021-06-25", 
+             "2021-08-25", "2021-10-25", "2021-12-25", "2022-02-25", 
+             "2022-04-25", "2022-06-25", "2022-08-25", "2022-10-25", 
+             "2022-12-25")
+base_url = "https://www.theyworkforyou.com"
+
+for(i in 1:length(StartDate)){
+  # Initialize a data frame to store the results
+  results_df <- data.frame(
+    speech_id = character(),
+    debate_date = character(),
+    debate_title = character (),
+    speech_content = character(),
+    speaker_name = character(),
+    speaker_party = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Initialize vectors to store all titles and links
+  all_titles <- c()
+  all_links <- c()
+    
+  link <- paste0(base_url, "/search/?q=%28%22EU%22+OR+%22European+Commission%22+OR+%22European+Union%22+OR+%22European+Council%22+OR+%22Brexit%22%29+",StartDate[i],"..",EndDate[i],"+section%3Adebates+section%3Awhall&p=1")
+    
+  # Error handling for the main page
+  page <- tryCatch({
+    read_html(link)
+  }, error = function(e) {
+    message("Error accessing main search page: ", link)
+    return(NULL)
+  })
+    
+  # Extract titles and links from the first page
+  titles <- page %>%
+    html_nodes(".search-result__title a") %>%  # Adjust the CSS selector if needed
+    html_text()
+  
+  links <- page %>%
+    html_nodes(".search-result__title a") %>%  # Adjust the CSS selector if needed
+    html_attr("href")
+    
+  # Filter links that start with "/debates"
+  debate_links <- links[grep("^/debates", links)]
+  
+  clean_link <- gsub("#.*$", "", links)
+    
+  # Combine them with all_titles and all_links
+  all_titles <- c(all_titles, titles)
+  all_links <- c(all_links, clean_link)
+
+  # Get the final page number
+  final_page_number <- page %>%
+    html_nodes(".search-result-pagination a[title='Final page']") %>% 
+    html_attr("href") %>% 
+    str_extract("p=\\d+") %>% 
+    str_remove("p=") %>% 
+    as.numeric()
+    
+  # Loop through all subsequent pages and extract titles and links
+  if (!is.na(final_page_number) && length(final_page_number) > 0&& final_page_number > 1) {
+    for (j in 2:final_page_number) {
+      next_link <- paste0(base_url, "/search/?q=%28%22EU%22+OR+%22European+Commission%22+OR+%22European+Union%22+OR+%22European+Council%22+OR+%22Brexit%22%29+",StartDate[i],"..",EndDate[i],"+section%3Adebates+section%3Awhall&p=", j)
+        
+      #Sys.sleep(sample(3:4, 1))  # Random delay between 3 to 5 seconds
+        
+      # Error handling for subsequent pages
+      next_page <- tryCatch({
+        read_html(next_link)
+      }, error = function(e) {
+        message("Error accessing subsequent search page: ", next_link)
+        return(NULL)
+      })
+      
+      if (is.null(next_page)) next  # Skip to the next iteration if the page is NULL
+        
+      # Extract titles and links from the current page
+      titles <- next_page %>%
+        html_nodes(".search-result__title a") %>%
+        html_text()
+        
+      links <- next_page %>%
+        html_nodes(".search-result__title a") %>%
+        html_attr("href")
+      
+      # Filter links that start with "/debates"
+      debate_links <- links[grep("^/debates", links)]
+        
+      clean_link <- gsub("#.*$", "", links)
+        
+      # Combine them with all_titles and all_links
+      all_titles <- c(all_titles, titles)
+      all_links <- c(all_links, clean_link)
+    }
+  } else {
+    print("Only one page exists or final page number not found.")
+  }
+    
+  # Filter links to only include ones with European, Europe, and EU in the title
+  # which are not Written answers.
+  filtered_links <- all_links[
+    grepl(paste("European", "Europe", "EU", sep="|"), all_titles, ignore.case = TRUE) & 
+      !grepl("Written Answer", all_titles, ignore.case = TRUE)
+  ]
+  
+    for (link_debate in filtered_links){
+      #Sys.sleep(sample(3:4,1))  # Random delay between 3 to 5 seconds
+      
+      # Find debate pages
+      debate_page <- tryCatch({
+        read_html(paste0(base_url,link_debate))
+      }, error = function(e) {
+        message("Error accessing debate page: ", link_debate)
+        return(NULL)
+      })
+        
+      if (is.null(debate_page)) next  # Skip to the next iteration if the page is NULL
+      
+      # Extract debate date
+      debate_date <- debate_page %>%
+        html_node("p.lead a") %>%
+        html_text(trim = TRUE)
+        
+      # Extract the debate title
+      debate_title <- debate_page %>%
+        html_node("div.debate-header__content h1") %>%
+        html_text(trim = TRUE)
+        
+      # Extract debate speeches
+      speeches <- debate_page %>%
+        html_nodes(".debate-speech")
+        
+      # Loop through each speech node to extract the required information
+      for (speech in speeches) {
+        # Get the speech ID
+        speech_id <- speech %>% 
+          html_attr("id")
+        
+        # Get the speaker's name
+        speaker_name <- speech %>%
+          html_node(".debate-speech__speaker .debate-speech__speaker__name") %>%
+          html_text(trim = TRUE)
+        
+        # Get the speaker's position (if it exists)
+        speaker_party <- speech %>%
+          html_node(".debate-speech__speaker .debate-speech__speaker__position") %>%
+          html_text(trim = TRUE)
+          
+        # Get the speech content
+        speech_content <- speech %>%
+          html_node(".debate-speech__content") %>%
+          html_text(trim = TRUE)
+          
+        results_df <- results_df %>%
+          add_row(
+            speech_id = speech_id,  # Character type
+            debate_date = debate_date,  # Character type
+            debate_title = debate_title,  # Character type
+            speech_content = speech_content,  # Character type
+            speaker_name = speaker_name,  # Character type
+            speaker_party = speaker_party  # Character type
+          )
+      }
+    } 
+  
+  output_file <- file.path("C:/Users/leonw/OneDrive - KU Leuven/2nd Semester/Collecting Big Data for Social Science/Final Assignment", paste0("Parliamentary_Debates_", i, ".csv"))
+  write.csv(results_df, output_file, row.names = FALSE)
+  Sys.sleep(30)
+}
+
+csv_files <- list.files(pattern = "^Parliamentary_Debates_.*\\.csv$")
+
+list_of_data_frames <- lapply(csv_files, read.csv)
+
+# Step 4: Combine all data frames into one using do.call and rbind
+combined_data_frame <- do.call(rbind, list_of_data_frames)
+
+combined_data_frame$year <- as.integer(substr(combined_data_frame$debate_date, nchar(combined_data_frame$debate_date) - 4 + 1, nchar(combined_data_frame$debate_date)))
+
+n_distinct(combined_data_frame$year)
+
+df_clean <- distinct(combined_data_frame)
+
+write.csv(df_clean, "Parliamentary_Debates_Combined.csv")
+```
+
+## Ethical considerations
+Web scrapping websites always comes with certain ethical considerations. Checking the robots.txt of the websites shows that it is legal to scrape the debates in the House of Commons. Despite the legal considerations sustainable approaches were used to scrape the data. First of all scraping was conducted during the night to avoid overloading the page in times when it is frequently used. Second a waiting time 30 seconds was chosen before scraping a new time frame to ensure not to burden the webpage to much.
+
+## Data cleaning
+To make the data useful for further analysis cleaning is necessary. We use the before constructed combined data frame of the 61 two month time spans which was already cleaned to include only distinct rows. In a next step all rows containing missing values in the speaker name column are deleted as they are not speeches in debates but descriptions or commentaries that follow the same logic in the source code of the website and are thus scraped as well. 
+
+As parliamentary debates often follow unwritten rules and some sentences might occur often without carrying significant reasons, a filter is applied to find often reoccurring statements. The statements that follow protocol like ""Will the right hon. Gentleman give way?" (cf. UK Parliament b)), which indicates the wish of an MP to speak during another MPs speech, are deleted as they could influence the overall sentiment even though they are mandatory to raise for the MPs. Furthermore descriptions of actions like "rose--" are deleted as well.
+
+To conduct an analysis depending on the speaker party the party of the speaker has to be identified. Unfortunately on the website the party is not clearly indicated. Looking at the data we see 1436 distinct values for the parties. This is reduced by implementing a new column that includes the Party, Minister, Speaker, Shadow Minister, depending on if a substring of one of these exists. Then individuals with multiple matches are further analysed. If a party is one of the matches, that party is chosen. If there are no parties in the description, the names are gathered and parties are hand coded to the politicians and added to the final column. Speaker is the only non party in the column as they have to be non-partisan in their role.
+
+A further formality of the House of Commons is to instigate a motion by starting with "I beg to move,..." (cf. UK Parliament a)). As this would influence the sentiment of a speech the substring is deleted if it appears.
+
+Finally a further column is created including Government or Opposition depending on the parties of the speaker being in the government or in opposition. 
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+#############################
+###     Data Cleaning     ### 
+#############################
+
+# Load the web scraped data
+df_Debates = read.csv("Parliamentary_Debates_Combined.csv", row.names = 1)
+
+# Delete all duplicated rows
+df_clean <- distinct(df_Debates)
+
+# Delete all rows where no speaker name exists as these are often not real speeches
+# but the descriptions of the following debates
+df_clean <- df_clean[!is.na(df_clean$speaker_name),]
+
+# We will now try to find reoccurring speech contents to discard
+# sentences that are following parliamental protocol but have no real meaning.
+# However, they could effect our sentiment analysis.
+df_value_counts <- df_clean %>%
+  group_by(speech_content) %>%
+  summarize(count = n()) %>%
+  filter(count > 4)
+
+
+# Found sentences that occur often and should be filtered out as they are part of the 
+# parliamentary culture.
+filter_list <- c("rose—","On a point of order, Mr Speaker.","indicated assent.",
+                 "Will the Secretary of State give way?","indicated dissent.",
+                 "Will my right hon. Friend give way?","Will the hon. Lady give way?",
+                 "Will my hon. Friend give way?","Will the right hon. Gentleman give way?",
+                 "Will the Minister give way?","Will the hon. Gentleman give way?",
+                 "Will my right hon. and learned Friend give way?","Order.",
+                 "Will the hon. and learned Lady give way?","Will the right hon. Lady give way?",
+                 "I beg to move, That the clause be read a Second time.","rose —",
+                 "Will the Prime Minister give way?","Will my hon. and learned Friend give way?",
+                 "Will the Attorney General give way?","I will.",
+                 "Will the hon. Gentleman give way on that point?","Will the Solicitor General give way?",
+                 "Will the hon. and learned Gentleman give way?","I give way to my hon. Friend.",
+                 "Will the Minister give way on that point?","I will give way to my hon. Friend.",
+                 "Will my hon. Friend give way on that point?","Will the Foreign Secretary give way?",
+                 "Will the hon. Lady give way on that point?","rose—[Interruption.]","I give way.",
+                 "I will give way one more time.","I give way to the hon. Gentleman.",
+                 "I will give way one last time.")
+
+df_clean <- df_clean %>% filter(!speech_content %in% filter_list)
+
+# clean the party column
+# Check the current number of distinct values for the party
+print(paste0("The current number of distinct party values: ",n_distinct(df_clean$speaker_party)))
+
+# List of parties in the parliament during the 10 years
+# as wel as other important positions
+Parties <- c("Liberal Democrat", "Liberal Democrats", "Independent", 
+             "Labour/Co-operative", "Co-operative","Labour", "Green", 
+             "DUP", "Speaker", "Scottish National Party", "Conservative", 
+             "Secretary","Shadow Minister", "Minister", "Plaid Cymru")
+
+# Initialize a new column to store the matching substring(s)
+df_clean$Party <- NA
+
+# Loop through the search list and check for each substring, with case insensitivity
+for (search_string in Parties) {
+  # Creates a regex pattern to make the match more flexible. Ex. Liberal Democrats should be catched as Liberal Democrat.
+  pattern <- paste0("\\b", search_string, "s?\\b")
+  
+  # Adds the substring to the new column if it's found in the Text column
+  df_clean$Party <- ifelse(grepl(pattern, df_clean$speaker_party, ignore.case = TRUE), 
+                              ifelse(is.na(df_clean$Party), search_string, 
+                                     paste(df_clean$Party, search_string, sep = ", ")),
+                              df_clean$Party)
+}
+
+# Check number and exact description of the remaining parties
+print(paste0("The new number of distinct party values: ",n_distinct(df_clean$Party)))
+print(unique(df_clean$Party))
+
+df_clean$Party <- gsub("Co-operative, Shadow Minister, Minister", "Co-operative", df_clean$Party)
+df_clean$Party <- gsub("Green, Shadow Minister, Minister", "Green", df_clean$Party)
+df_clean$Party <- gsub("Conservative, Minister", "Conservative", df_clean$Party)
+df_clean$Party <- gsub("Labour, Secretary", "Labour", df_clean$Party)
+df_clean$Party <- gsub("Labour, Secretary, Shadow Minister, Minister", "Labour", df_clean$Party)
+df_clean$Party <- gsub("Labour/Co-operative, Co-operative, Labour", "Labour/Co-operative", df_clean$Party)
+df_clean$Party <- gsub("Liberal Democrat, Liberal Democrats", "Liberal Democrat", df_clean$Party)
+df_clean$Party <- gsub("Labour, Shadow Minister, Minister", "Labour", df_clean$Party)
+df_clean$Party <- gsub("Independent, Speaker", "Independent", df_clean$Party)
+
+
+unique(df_clean$speaker_name[df_clean$Party=="Secretary, Shadow Minister, Minister"])
+unique(df_clean$speaker_name[df_clean$Party=="Shadow Minister, Minister"])
+unique(df_clean$speaker_name[df_clean$Party=="Secretary, Shadow Minister, Minister"])
+unique(df_clean$speaker_name[df_clean$Party=="Secretary, Minister"])
+unique(df_clean$speaker_name[df_clean$Party=="Speaker, Secretary"])
+unique(df_clean$speaker_name[df_clean$Party=="Green, Conservative"])
+unique(df_clean$speaker_name[df_clean$Party=="Labour, Green"])
+unique(df_clean$speaker_name[df_clean$Party=="Liberal Democrat, DUP"])
+unique(df_clean$speaker_name[df_clean$Party=="Minister"])
+unique(df_clean$speaker_name[df_clean$Party=="Secretary"])
+
+
+# Hand coded data frame based on the names gathered from the table before
+new_party = read_excel("New party.xlsx")
+
+# Based on the previous data frame combine the names with the assigned party.
+# There are no names liste twice.
+df_clean <- df_clean %>%
+  left_join(new_party, by = "speaker_name", suffix = c("", ".new")) %>%
+  mutate(Party = coalesce(Party.new, Party)) %>%
+  select(-Party.new)
+
+knitr::kable(table(df_clean$Party))
+
+
+
+# Delete the phrase "I beg to move" as it is mandatory at the beginning of every debate
+df_clean$speech_content <- sub("^I beg to move","",df_clean$speech_content)
+
+# Format the debate_date column so that it contains dates not character strings
+df_clean$debate_date <- dmy(df_clean$debate_date)
+
+# A later function needs the speeches to be in a column called 'text' so we rename it
+names(df_clean)[names(df_clean) == "speech_content"] <- "text"
+
+# Add a new column indicating whether the party was in the opposition or government at that time.
+df_clean$Government_Opposition <- ifelse(
+  (df_clean$Party == "Conservative" & df_clean$debate_date <= as.Date("2015-05-08")) |
+    (df_clean$Party == "Conservative" & df_clean$debate_date > as.Date("2015-05-08")
+     & df_clean$debate_date < as.Date("2019-12-16")) |
+    (df_clean$Party == "DUP" & df_clean$debate_date > as.Date("2015-05-08")
+     & df_clean$debate_date < as.Date("2019-12-16")),
+  "Government", 
+  ifelse(
+    df_clean$Party == "Conservative" & df_clean$debate_date >= as.Date("2019-12-16"),
+    "Government", 
+    "Opposition"
+  )
+)
+```
+
+### Data exploration
+The resulting cleaned data frame includes 59,813 speeches in 1,566 debates. As seen above most speeches are held by the *Conservative* followed by the *Labour* party. The other parties have significantly less speeches which is in accordance with the number of seats these parties had in the parliament.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+print(n_distinct(df_clean$debate_date, df_clean$debate_title, na.rm = TRUE))
+
+number_debates <- df_clean %>% 
+  group_by(year) %>%
+  summarize(distinct_combinations = n_distinct(debate_date, debate_title))
+
+knitr::kable(number_debates, caption = "Number of debates per year")
+
+number_speakers <- df_clean %>% 
+  group_by(year) %>%
+  summarize(distinct_combinations = n_distinct(speaker_name))
+
+knitr::kable(number_speakers, caption = "Number of speakers per year")
+```
+
+When looking at the results by year it gets obvious that debates on EU topics drastically increased during the Brexit years from 2016 until 2020. Not only did significantly more MPs contributed to the debate but also the number of debates itself is five times higher with 361 debates in 2018 compared to 68 in 2015 and even less in 2014.
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+
+custom_stopwords <- c("hon", "minister", "friend", "want", "can", "prime", "beg",
+                      "parliament", "house", "commons")
+
+tidy_speeches <- df_clean %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words, by = "word") %>%
+  filter(!word %in% custom_stopwords)
+
+word_counts <- tidy_speeches %>%
+  count(year, Government_Opposition, word, sort = TRUE)
+
+knitr::kable(sum(word_counts$n), caption = "Number of words")
+
+total_words_by_year <- word_counts %>% 
+  group_by(year) %>%
+  summarize(total_words = sum(n))
+knitr::kable(total_words_by_year, caption = "Number of words per year")
+```
+To investigate the data further we look at words used. Overall with removing stopwords, 3,140,383 words are spoken in the course of 10 years on topics concerning the EU. Most words are similar to the number of debates spoken in 2017 to 2019. To look at the most used words bar plots are created to shows the most frequent words by year and then if it was said by a member of the opposition or the ruling party.
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+top_words_combined <- word_counts %>%
+  group_by(year) %>%
+  top_n(15, n)
+
+combined_plot <- ggplot(top_words_combined, aes(x = reorder(word, n), y = n)) +
+  geom_bar(stat = "identity", position = "dodge", fill = "orange") +
+  coord_flip() +
+  facet_wrap(~ year, scales = "free_y") +
+  labs(title = "Most Common Words by Year and Government/Opposition",
+       x = "Words",
+       y = "Frequency") +
+  theme_minimal()
+
+print(combined_plot)
+```
+
+It is clear to see that referendum pops up first in 2013 and then in 2015 and 2016 again. In the years 2018 and 2019 the deal with the EU became more important. Overall, it shows, that Brexit is the most important topic from 2016 on. 
+In 2019 agreement is included in the 15 most frequent words. This is probably due to the fear of a no-deal Brexit as after two years the after submitting the intention to leave the EU, Article 50 of the EU Treaty would cause the country to leave. 
+
+Furthermore, northern and Ireland become frequent words in 2020 and 2021 as Northern Ireland and its relation towards it southern neighbour the republic of Ireland was one of the major issues in the Brexit debates. The connections of territory and institutions across border and the openness of the borders itself as part of the peace treaty in 1998 were important talking points in the negotiations between the UK and the EU (cf. p.416 f. Murphy (2021)).
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+
+library(dplyr)
+library(ggplot2)
+filtered_words <- word_counts %>%
+  filter(!is.na(Government_Opposition)) %>%  # Change to "Opposition" if needed
+  group_by(Government_Opposition) %>%
+  top_n(15, n) %>%
+  ungroup()
+
+Gov_plot <- ggplot(filtered_words, aes(x = reorder(word, n), y = n)) +
+  geom_bar(stat = "identity", position = "dodge", fill = "steelblue") +
+  coord_flip() +
+  facet_wrap(~ Government_Opposition, scales = "free_y") +
+  labs(title = "Most Common Words by Government/Opposition",
+       x = "Words",
+       y = "Frequency") +
+  theme_minimal()
+
+print(Gov_plot)
+```
+
+Comparing the topics by positions of the MPs surprisingly does not show a big difference. This is understandable as debates often are concerned with certain topics thus the most frequent words are likely presenting the topics that were discussed frequently in the parliament.
+
+## Sentiment Analysis
+Sentiment analysis is a technique used to determine the emotional tone (positive, negative or neutral) of a digital text, in our case parliamental speeches. For most cases, it is conducted by a rule-based or a machine learning approach. While the latter can be used to understand more complex and interesting concepts, it nowadays often utilizes deep learning and other complex methods that go beyond the concepts learned in the course and the purpose of this project. Thus, while we acknowledge that determining the sentiment of a text (speech) is also not a simple task, we will use the rule-based (or dictionary based) approach with a custom lexicon created from a corpus of parliamentary debates in the House of Commons by Rheault et al. (2016). Using a domain-specific sentiment dictionary is important because lexicons attuned on different domains than the ones they are used for often perform poorly in sentiment analysis tasks.
+
+We inspect the first few rows of the sentiment lexicon (available on the authors' [GitHub repository](https://github.com/lrheault/emotion?tab=readme-ov-file)) in the table below and see that the sentiments are not simply assigned to words (to be more specific, lemmas) but to the combination of lemmas and their Part-of-Speech (POS) tag. While other popular dictionaries such as VADER (Hutto and Gilbert 2014), the Liu and Hu Lexicon (Hu and Liu 2004) or AFINN-111 (Nielsen 2011) often match sentiments only to the words, we see that this approach is already more sophisticated - Combining it with the fact that the lexicon was constructed from political texts, we can be hopeful that our method will capture the real sentiment of the speeches better. Rheault et al. (2016) refer to sentiment as "emotional polarity", hence the column 'polarity' in the table below, but they can be used interchangeably. The dictionary contains sentiments for 4200 words (lemmas) in the range of [-1, 1], -1 being most negative and 1 being most positive with an equal number of positive and negative sentiments (2100-2100). For more details about how the lexicon was constructed and polarities assigned, we refer to the original paper.
+```{r sentiment-table, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+# Load the lexicon from Rheault et al. (2016)
+sentiment_lexicon <- read.csv("lexicon-polarity.csv")
+
+# Remove irrelevant column
+sentiment_lexicon %>% select(-seed) -> sentiment_lexicon
+
+knitr::kable(head(sentiment_lexicon), caption = "Observations form the lexicon of Rheault et al. (2016)")
+```
+### Lemmaitazion and Part-of-Speech tagging
+Lemmatization is the process of finding the root (called lemma) of a word and is useful in computational linguistics because by analyzing various inflected forms of a word as a single item, text processing models can equate morphologically related words. POS tagging learns the linguistic category (noun/verb/adverb/etc.) of a word (called part of speech) and assigns it to the token. It is useful since the same word can have different meanings in different contexts (and thus, also different sentiments). In fact, the previously introduced dictionary we use indeed contains countless examples of the same lemma with different POS tags and sentiments.
+
+Both methods require to understand the meaning of the words not just by themselves, but also within the larger context of the surrounding sentence, or even the whole document. This is not an easy task, and is often done by machine learning algorithms or nowadays deep learning. Our purpose with this project is not to train a lemmatizer and POS tagger model on our own corpora, so we will use a pre-trained one.
+
+While stop word removal is a common pre-processing step in text analysis, they in fact help the model better understand the context of a word so we do not remove them and apply the pre-trained model on our raw texts (speeches). While several pre-trained models can be found on the internet, we will use UDPipe (Wijffels 2021) which seemed to be one of the most popular. To make sure it is adequate for our needs, we validate the lemmatization and POS tagging on a subset of speeches manually and also compare it to another package especially famous in the Python community, SpaCy (Benoit and Matsuo 2023).
+```{r, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+###############################################################
+###          THIS NEEDS AT LEAST 2 HOURS to RUN!!!          ### 
+###############################################################
+
+# Download English model - enough to do once
+# m_eng <- udpipe_download_model(language = "english-ewt")
+
+# Load model from path
+m_eng_loaded <- udpipe_load_model(file = "english-ewt-ud-2.5-191206.udpipe")
+
+# Lemmatize and POS tag speeches - BEWARE: code runs for at least 2 hours
+pos <- udpipe_annotate(m_eng_loaded, x = df_clean$text) %>% 
+  as.data.frame()
+
+# Save data frame for later use
+save(pos, file = "pos.RData")
+```
+We validate the performance of the lemmatizer and POS tagger by taking a random sample of speeches, conducting lemmatization and POS tagging manually on each token by ourselves and comparing them with those obtained by the pre-trained models of UDPipe and SpaCy. We coded a total of 1400 tokens manually, 98.5% of lemmas matched with the lemmas created by UDPipe and 99.1% of the POS tags matched with those from UDPipe. These results are as good as what we can expect from any model, leading us to be satisfied with UDPipe's pre-trained model. SpaCy palso roduces similarly strong results with differences being mostly irrelevant (e.g., one model lemmatizing 'an' as 'a' while the other keeps it as 'an', etc.). What made us choose UDPipe over SpaCy is that the latter splits compound words separated by hyphens into multiple lemmas, whereas UDPipe does not - While one could argue that splitting is the correct approach, such words are treated as one lemma in the sentiment lexicon (e.g. co-operation, high-quality, etc.) which means we could not assign a sentiment to these words if we used SpaCy's model.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Load the POS tagged data and model
+load("pos.RData")
+#spacy_install()
+m_eng_loaded <- udpipe_load_model(file = "english-ewt-ud-2.5-191206.udpipe")
+
+# Sample 100 speeches
+set.seed(123)    #For reproducibility
+sampled_speeches <- df_clean %>% sample_n(100)
+
+# Lemmatize and POS tag with UDPipe
+pos_validation_UDPipe <- udpipe_annotate(m_eng_loaded, x = sampled_speeches$text) %>%
+  as.data.frame()
+
+# Lemmatize and POS tag with Spacyr
+#spacy_initialize(model = "en_core_web_sm")
+#pos_validation_spacy <- spacy_parse(sampled_speeches$text, lemma = TRUE, pos = TRUE, tag = TRUE)
+
+# Save files for easier manual validation in Excel
+pos_validation_UDPipe %>% write_xlsx("pos_validation_UDPipe.xlsx")
+#pos_validation_spacy %>% write_xlsx("pos_validation_spacy.xlsx")
+```
+### Mapping POS tags
+As the following lines shows, the POS tags form UDPipe are different from those in the sentiment dictionary. In the next step, we need to create a mapping between them.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+unique(pos$upos)
+unique(sentiment_lexicon$pos1)
+```
+Based on the information in the table below, we map the POS tags in the sentiment lexicon to the tags in UDPipe, so that later we can match the sentiments based on them to our data.
+```{r, echo=FALSE}
+# Mapping table
+maptable <- data.frame(
+  "UDPipe POS" = c("NOUN", "VERB", "PUNCT", "CCONJ", "NUM", "SCONJ", "DET", 
+                 "ADP", "ADJ", "PROPN", "PART", "ADV", "AUX", "PRON", 
+                 "INTJ", "SYM", "X"),
+  "Description" = c("Noun", "Verb", "Punctuation", "Coordinating conjunction", "Numeral",
+                    "Subordinating conjunction", "Determiner", "Adposition", "Adjective",
+                    "Proper noun", "Particle", "Adverb", "Auxiliary", "Pronoun",
+                    "Interjection", "Symbol", "Other"),
+  "Example tokens" = c("team, access, support", "commend, welcome, provide", ". , ()",
+                       "and, or, but", "2020, two", "that, while, if, as", "a, the, what",
+                       "in, to, by, with", "delighted, warm, flexible", "Member, House, European",
+                       "'s, not, to", "certainly, very, preferably", "can, have, am",
+                       "I, he, she, anyone", "yes, no, psst", "%, $, £", ""),
+  "Sentiment lexicon POS" = c("n", "v", "", "", "", "", "",
+                                  "", "a", "", "", "r", "", "",
+                                  "u", "", ""),
+  "Action" = c("change POS in lexicon: n --> NOUN", "change POS in lexicon: v --> VERB", "", "",
+               "", "", "", "", "change POS in lexicon: a --> ADJ", "", "",
+               "change POS in lexicon: r --> ADV", "", "", "change POS in lexicon: u --> INTJ",
+               "", ""),
+  check.names = FALSE
+)
+
+knitr::kable(maptable, caption = "Mapping guidance for POS tags")
+```
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Mapping POS tags
+sentiment_lexicon %>%
+  mutate(pos1 = case_when(pos1 == 'n' ~ 'NOUN',
+                          pos1 == 'v' ~ 'VERB',
+                          pos1 == 'a' ~ 'ADJ',
+                          pos1 == 'r' ~ 'ADV',
+                          pos1 == 'u' ~ 'INTJ')) -> sentiment_lexicon
+```
+### Calculating the average sentiment over time
+We can now match sentiments from the dictionary to the words in the speeches. Following the paper of Rheault et al. (2016), the overall sentiment in the House of Commons at a given time or over a time period is calculated in the following way:
+$$
+y_t = \frac{\sum_{i=1}^{n_t} I\{w_{it} \in L\} \cdot s_i \cdot \theta_{it}}{\sum_{i=1}^{n_t} I\{w_{it} \in L\}}
+$$
+Where $w_{it}$ are the lemmas in the speeches during period *t*, $I\{w_{i} \in L\}$ is an indicator function equaling 1 if $w_{i}$ is present in the sentiment lexicon and 0 otherwise, $s_{i}$ is the polarity score in the dictionary associated with lemma *i*, $\theta_{it}$ is a parameter measuring the valence of lemma *i* in the speeches during period *t*, and $n_{t}$ is the total number of lemmas in the speeches during period *t*. The valence parameter takes 0 if $w_{it}$ is located between a negating word (*not*, *no*, *never*, *neither* and *nor*) and a punctuation and 1 otherwise, this way cancels attributing sentiments to expressions such as "not satisfied", "no benefit" and so on. To summarize the formula in one sentence, we take the sum of sentiments for lemmas that were also present in the lexicon but were not between a negating word and a punctuation in the speeches, and divide this by the number of such lemmas over the time period of interest. The division with the count of matched lemmas account for the biases of long speeches having more lemmas and potentially higher sentiment while short speeches having fewer.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Create a lookup table that store the sentiments of each speech
+negating_words <- c("not", "no", "never", "neither", "nor")
+pos %>%
+  # Last 6 columns not needed
+  select(-tail(names(.), 6)) %>%
+  # Create 'valence' column as defined in the paper
+      # Negation and punctuation indicator column
+      mutate(is_negation = lemma %in% negating_words,
+             is_punctuation = upos == "PUNCT") %>%
+      # Running flag to identify regions between punctuations and regions between negating words
+      mutate(punctuation_block = cumsum(is_punctuation),
+             negation_block = cumsum(is_negation)) %>%
+      # If there is a switch in negation block inside the same punctuation block we assign valence
+      group_by(punctuation_block, negation_block) %>%
+      mutate(valence = ifelse(any(is_negation), 0, 1)) %>%
+      ungroup() %>%
+      # Remove temporary auxiliary columns
+      select(-is_negation, -is_punctuation, -negation_block, -negation_block) %>% 
+  # Keep relevant POS tags only
+  filter(upos %in% c('NOUN', 'VERB', 'ADJ', 'ADV', 'INTJ')) %>%
+  # Map polarity values
+  left_join(sentiment_lexicon, by = c('lemma' = 'lemma', 'upos' = 'pos1')) %>%
+  # Calculate sentiment based on paper
+  mutate(sentiment = polarity*valence) %>% 
+  # Calculate sum of sentiment for each speech and number of words that had a sentiment
+  group_by(doc_id) %>% 
+    summarise(sentiment_sum = sum(replace_na(sentiment, 0)),
+              sentiment_count = sum(!is.na(sentiment) & sentiment != 0)) -> sentiments_by_speech
+
+# Map the sentiments to the speeches in the original data df_clean
+df_clean %>% 
+  # Add the doc_id column to df_clean to join on it in the subsequent step
+  mutate(doc_id = paste0('doc', row_number())) %>% 
+  left_join(sentiments_by_speech, by = 'doc_id') %>%
+  # Replace NA values with 0 in the sentiment_sum and sentiment_count columns
+  mutate(across(c(sentiment_sum, sentiment_count), ~ replace_na(.x, 0))) -> df_clean
+```
+To validate the average sentiment of the debates, we take a random sample of 100 speeches, and manually assign a *positive*, *neutral* or *negative* sentiment to each based on their contents. As opposed to the computational sentiment analysis process, we do not look at every word, assess its sentiment based on our own feelings and sum then average them over a speech but we look at each speech as a whole and try to assess its sentiment overall. This is then compared with the average sentiment calculated by the previously shown formula for each speech.
+
+Speeches in our sample would consist of multiple sentences and often paragraphs and assessing the polarity of such texts with one single sentiment without any rules is utterly complex. We tended to assign a *positive* sentiment to speeches that were more positive than usual compared to the previously read speeches, *negative* to those that were more negative, and *neutral* to speeches that felt to have an "average" polarity. Such a categorization of sentiments make more sense to be compared to centralized sentiment scores obtained from the computational analysis, where a positive value would mean above average- , a negative value would mean below average- and values around 0 would mean neutral sentiments. 95% of speeches labeled as *positive* had a positive centralized polarity score meaning they had above-average sentiment and 68% of speeches labeled as *negative* had a negative centralized polarity score meaning they had below-average sentiment. This shows that our dictionary based method is is fairly good in separating positive (or more positive than average) speeches from negative ones. On the other hand, we observe that it has troubles separating neutral speeches from positive and negative.
+
+To obtain an accuracy of the model, we have to convert the scores returned by the sentiment analysis that lie between [-1, 1] to *positive*, *neutral* or *negative* sentiments based on some thresholds. The average centralized sentiment lies between [-1.39, 0.61] and is distributed roughly normally. To calculate the thresholds for the different categories, we shrink the domain of the centralized sentiments to values closer than 2 standard deviations away from the mean to remove outliers, and then split into three equal parts. The splitting points are then the thresholds between sentiment categories. Using this approach, the accuracy of the sentiment analysis on the sample is 59%. This is better than random guessing but far from perfect.
+
+The results show that sentiment analysis using a lexicon can be useful in indicating the sentiment of speeches but we have to treat any finding with caution. At this point we note that while we did not compare our dictionary to other popular ones on the internet, those are usually not trained on political texts so we would not expect better results from them. Rheault et al. (2016) did so however in their paper and found that although sentiments differed, the main patterns of polarity change over time remained.
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Sample 100 speeches for validation
+set.seed(123)    #For reproducibility
+df_clean %>% 
+  sample_n(100) %>% 
+  mutate(average_sentiment = ifelse(sentiment_count == 0, 0, sentiment_sum/sentiment_count),
+         standardized_sentiment = scale(average_sentiment)) %>%
+  # Write to Excel and validate manually in it
+  write_xlsx("sentiment_validation.xlsx")
+```
+
+# Results
+The following sections will show the found results of the sentiment analysis. First the temporal evolution of the sentiments is shown on a debate, quarterly, and yearly level. Then the difference between the sentiments of the Opposition and Government is looked at in more detail, and finally three main topics of the EU-UK relations are analysed.
+
+## Sentiments over time
+The following figures show the emotional polarity in the House of Commons during EU-related debates over time. To make patterns more prevalent, we add smoothing lines as well to the plots.
+
+The first plot below shows us the most granular view on sentiments, by the dates of the debates. While some fluctuation is inevitable in the sentiments, at first glance it seems like the emotional polarity moves in an even range around its average and we cannot see the increasing trend over time reported by Rheault et al. (2016). Nevertheless, it is interesting to calculate the average sentiment in the debates before the referendum to leave the EU (23 June 2016), between the official Brexit (31 January 2020), and after the withdrawal. The average sentiment in debates before the referendum was 0.3792, between the referendum and Brexit it was 0.3871 and after Brexit it was 0.3874. While these seem to be small differences, ANOVA shows that the difference between before referendum and after Brexit, as well as before referendum and between it and Brexit is significant on 5% level.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Visualize as in the paper
+mblue <- "#002A48"
+pblue <- "#3F5F75"
+
+# Visualize the sentiment by date
+df_clean %>% 
+  group_by(debate_date) %>% 
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
+  mutate(sentismooth = smooth.spline(average_sentiment, spar = 0.5)$y) %>%
+  ggplot(aes(x = debate_date)) +
+  geom_line(aes(y = average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth), size = 2, colour=mblue) +
+  xlab("Date") +
+  ylab('Sentiment') +
+  scale_y_continuous(limits = c(0.15,0.62)) +
+  theme_minimal()
+
+# Average sentiments in different periods, testing difference
+df_clean %>%
+    mutate(average_sentiment = ifelse(sentiment_count == 0, 0, sentiment_sum / sentiment_count)) %>% 
+    mutate(period = case_when(
+      debate_date <= as.Date("2016-06-23") ~ "Before referendum",
+      debate_date >= as.Date("2016-06-24") & debate_date <= as.Date("2020-01-31") ~ "Between Brexit",
+      debate_date > as.Date("2020-01-31") ~ "After Brexit"
+    )) -> df_clean
+
+df_clean %>% group_by(period) %>%
+  summarise(average_sents = mean(average_sentiment, na.rm = TRUE)) -> period_avgs
+
+period_avgs
+
+# ANOVA
+anova <- aov(average_sentiment ~ period, data = df_clean)
+summary(anova)
+
+TukeyHSD(anova)  
+```
+
+While we do not observe a general increasing trend in sentiment over time, there are some smaller local trends which can be better seen when the data is aggregated quarterly on the figure below. Since our main interest is in the change of sentiment and not its precise value, the polarities are standardized, and thus a negative score indicates below-average sentiment and a positive score indicates above average. It is interesting to note that while the sentiment in the debated dropped to below average in the preceding months of the referendum, it increased rapidly after in the following months. As for the time of official Brexit, the sentiment has been increasing for two quarters preceding it, which then slowly decreased in the following months and quarters.
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Visualize the sentiment by quarter - standardized data, as in paper
+df_clean %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum) / sum(sentiment_count))) %>%
+  mutate(standardized_sentiment = scale(average_sentiment), 
+         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>% 
+  mutate(quarter = factor(quarter, levels = unique(quarter))) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = standardized_sentiment), size = .1, colour = pblue) +
+  geom_point(aes(y = standardized_sentiment), size = 6, colour = pblue, shape = 1, stroke = .25) +
+  geom_line(aes(y = sentismooth), size = 2, colour = mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Aggregating the data on a yearly level shows the overall trend of sentiments in the UK parliament on topics related to the EU. The shown data is standardized. In the first years until 2017 a clear upwards trend can be observed indicating more positive sentiments. Between 2018 and 2022 the data however changes drastically between the years, going from its lowest in 2019 to second highest in 2020.
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Visualize the sentiment by year - standardized data, as in paper
+df_clean %>% 
+  group_by(year) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum) / sum(sentiment_count))) %>%
+  mutate(standardized_sentiment = scale(average_sentiment), 
+         sentismooth = smooth.spline(standardized_sentiment, spar = 0.5)$y) %>%
+  ggplot(aes(x = year, group = 1)) +
+  geom_line(aes(y = standardized_sentiment), size = .1, colour = pblue) +
+  geom_point(aes(y = standardized_sentiment), size = 6, colour = pblue, shape = 1, stroke = .25) +
+  geom_line(aes(y = sentismooth), size = 2, colour = mblue) +
+  xlab("Date") +
+  ylab('Sentiment') +
+  scale_x_continuous(breaks=c(2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022))  +
+  theme_minimal()
+
+Values_by_year <- df_clean %>% 
+  group_by(year) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum) / sum(sentiment_count)))
+knitr::kable(Values_by_year, caption = "Not Standardized Sentiment Value by Year")
+
+```
+
+## Sentiment by Government - Opposition
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Plot by Government-Opposition sentiment
+df_clean %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter, Government_Opposition) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum)/sum(sentiment_count))) %>%
+  pivot_wider(names_from = Government_Opposition, values_from = average_sentiment) %>% 
+  select(-'NA') %>%
+  ungroup() %>%
+  mutate(sentismooth_government = smooth.spline(Government, spar = 0.5)$y,
+         sentismooth_opposition = smooth.spline(Opposition, spar = 0.5)$y) %>%
+  mutate(quarter = factor(quarter, levels = unique(quarter))) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = Government), size = .1, colour="#3F5F75") +
+  geom_point(aes(y = Government), size = 6, colour="#3F5F75", shape=1, stroke=.25) +
+  geom_line(aes(y = Opposition), size = .1, colour="#3FA8C3") +
+  geom_point(aes(y = Opposition), size = 6, colour="#3FA8C3", shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_government, colour="Government"), size = 2) +
+  geom_line(aes(y = sentismooth_opposition, colour="Opposition"), size = 2) +
+  scale_colour_manual(name="", values=c(Government="#002A48",Opposition="#008BB0")) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position=c(0.4,0.2),
+        legend.text = element_text(size = 10),
+        legend.key.height=unit(1.5,"line"),
+        legend.key.size=unit(2.5,"line"),
+        legend.key = element_blank())
+```
+
+The above plot shows the averaged sentiment per quarter. The dark blue line represents the speeches made by MPs that were part of the ruling party, whereas the light blue lines indicate MPs that are part of the opposition. Similar to the findings of Rheault et al. (2016) the general pattern between ruling party and opposition is very similar however with the opposition being slightly more negative. This makes sense as their name tells they are opposed to the government's work and are more likely to critique them out loud.
+
+Both groups show an increase after the referendum to leave the EU and a negative trend after the decision to leave it.
+
+This seems surprising for the more EU friendly opposition parties like Labour or the Scottish National Party, as the increase of the opposition is even stronger. This could have two possible explanations. For one the Opposition could have tried to portray the EU in a positive light to circumvent leaving after the referendum. The downwards trend then shows that there was no need for it as soon as Brexit was decided on. Another explanation could be the will for both parties to work together to guarantee smooth and beneficial negotiations instead of trying to oppose the ruling party as often as possible.
+
+On an aggregated level the controversial topic does not change the trend in sentiments between the opposing political sides significantly.
+
+
+## Sentiment by Subtopics
+As the data includes every possible debate which mentions the EU, a lot of the debates could be about trivial topics and general agreement to uncontroversial laws. As this could lead to a generally more favourable sentiment in the debates a further filter is applied. The filter is topic specific and only includes debates about the topic Brexit, Economy, and Migration as these were main and controversial talking points in the relationship with the EU in the observed time frame. The data was gathered by hand coding a binary variable for every debate using the debate title, the first speech and if necessary the whole debate. The three topics where chosen as they stand as an example for important subtopics in the relations between the EU and the UK.  
+
+A debate was decided to be about Brexit if it fell in one of three categories. First if the debate was about the specifics of the withdrawal from the EU. Second if the debate was about direct negotiations with EU counterparts or debates about these. For example “Leaving the Eu: Fisheries Management” a debate about the progress of the negotiations with the EU fishery management. And third if it was about direct effects of leaving the EU as for example “Exiting the EU: Welsh Economy” which discusses the effects of leaving on the Welsh Economy. Not included are discussions about future plans that come after the decision to leave.
+
+Economy includes every debate that discusses economic topics and effects on the economy. However it does not include debates about specific niche industries as for example the “Welsh Sheep Meat Trade”.
+
+Migration includes every debate that is directly connected to migrants and migration. This includes refugee deals of the EU as well as EU related migration. The latter was often discussed as part of the cancellation of the free movement after leaving the EU.
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Plot sentiments by selected topics
+topics_parliament <- read_excel("Topics_Parliament.xlsx")
+
+# Topic - Brexit
+df_clean %>% 
+  left_join(topics_parliament, by = "debate_title") %>%
+  mutate(brexit_sentiment_sum = ifelse(Brexit == 1, sentiment_sum, NA),
+         brexit_sentiment_count = ifelse(Brexit == 1, sentiment_count, NA)) %>% 
+  filter(Brexit == 1) %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(brexit_average_sentiment = 
+              sum(na.omit(brexit_sentiment_sum)) / sum(na.omit(brexit_sentiment_count))) %>%
+  mutate(sentismooth_brexit = smooth.spline(brexit_average_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = brexit_average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = brexit_average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_brexit), size = 2, colour=mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  ggtitle("Topic: Brexit") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Topic - Economic
+df_clean %>% 
+  left_join(topics_parliament, by = "debate_title") %>%
+  mutate(economic_sentiment_sum = ifelse(Economic == 1, sentiment_sum, NA),
+         economic_sentiment_count = ifelse(Economic == 1, sentiment_count, NA)) %>% 
+  filter(Economic == 1) %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(economic_average_sentiment = 
+              sum(na.omit(economic_sentiment_sum)) / sum(na.omit(economic_sentiment_count))) %>%
+  mutate(sentismooth_economic = smooth.spline(economic_average_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = economic_average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = economic_average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_economic), size = 2, colour=mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  ggtitle("Topic: Economy") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Topic - Migration
+df_clean %>% 
+  left_join(topics_parliament, by = "debate_title") %>%
+  mutate(migration_sentiment_sum = ifelse(Migration == 1, sentiment_sum, NA),
+         migration_sentiment_count = ifelse(Migration == 1, sentiment_count, NA)) %>% 
+  filter(Migration == 1) %>% 
+  mutate(quarter = paste0(year(debate_date), "-Q", quarter(debate_date))) %>% 
+  group_by(quarter) %>%
+  summarise(migration_average_sentiment = 
+              sum(na.omit(migration_sentiment_sum)) / sum(na.omit(migration_sentiment_count))) %>%
+  mutate(sentismooth_migration = smooth.spline(migration_average_sentiment, spar = 0.5)$y) %>% 
+  ggplot(aes(x = quarter, group = 1)) +
+  geom_line(aes(y = migration_average_sentiment), size = .1, colour=pblue) +
+  geom_point(aes(y = migration_average_sentiment), size = 6, colour=pblue, shape=1, stroke=.25) +
+  geom_line(aes(y = sentismooth_migration), size = 2, colour=mblue) +
+  xlab("Quarter") +
+  ylab('Sentiment') +
+  ggtitle("Topic: Migration") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+```
+
+Looking at the results we see that for all subtopics the overall sentiment is slightly positive. Not all quarters are included in the data as some topics were not discussed in detail during certain quarters. Especially obvious to see for Migration were only 19 quarters exist instead of 41.
+
+Interestingly all topics have a positive increase of sentiments in 2017. Economy and Brexit also show a dump in 2019 and a final decrease in 2022. For Migration there is no data after 2020.
+
+The results state that there is not a clear difference in the highly controversial subtopics and that overall the sentiment in teh debates still stays positive. However, we see stronger contrasts with sentiments of individual quaters being very positive (Q3-2017 in Migration is above 0.5) as well as much less positive results (Q2-2021 in Economy is below 0.3). This for one could be due to less debates and thus stronger effects of single debates on the aggregated level. On the other hand it shows that there is greater variation when only taking niche topics.
+
+
+
+# Limitations
+When working with lexicon based approaches for sentiment analysis the strict rules it follows makes it perform poorly in comparison to machine learning or manual coding approaches (cf. p.128 f. van Atteveldt et. al (2021)). Therefore, this paper made use of a topic specific lexicon and tried to overcome the problem of negated sentences. Still, during validation it was obvious that sarcastic speeches are not unusual and will impact the sentiment analysis. Also very complex sentence structures which are common in parliamentary debates can change the sentiment of the speech. Validation showed non the less an okay precision leading to confidence in our results on an aggregated level. Individual speeches however could be easily misspecified and the analysis only works with sufficiently large data. Also, the debates in the parliament are under certain restrictions and traditions. Therefore, the MPs will not say directly what they think but rather use indirect and more polite speach making every debate slightly more positive. 
+
+Furthermore, our paper does a good job in showing the trends of the sentiments related to EU topics. But it fails to show causal relations. Our results therefore do not show what caused the difference in sentiments but rather that they exist. This is also the scope of our proposed questions should however trigger further research to show the reasons for possible sentiment changes in the debate.
+
+# Conclustion
+In the beginning of this paper three questions were put forward. Using Parliamentary debates in the UK about topics connected to the EU we analysed the sentiment of the Parliament connected to an emotional and controversial topic. Our findings show that even though controversial the sentiments of the speeches are relatively stable over time and throughout the 10 year time period overall positive. However there is not a continued positive trend observed as in Rheault et al. (2016).
+
+Investigating whether there is a significant difference between the opposition and ruling party lead to similar results as Rheault et al. (2016) found. Their sentiments follow a parallel trend where the opposition shows a slightly less positive sentiment. Indicating that they oppose the ruling party but still keep a certain level of politeness in their opposition. 
+
+Finally also the most controversial but still big enough topics Brexit, Economy, and Migration were looked at. They show a stronger variance with stronger extremes. But overall the sentiments here stay positive and vary around a value around 0.37. Only Brexit shows a steep decline in the last quarters of the analysis. 
+
+Given the limitations of the lexicon based approach as well as the causal relations, we can conclude that the sentiment of debates in the British parliament concerning the emotional EU related topics were slightly positive, however did not show a further positive trend. Also every subcategory showed a more positive sentiment right after the vote to leave in 2016 and a decline to previous or worse levels.
+
+# Pitch
+In this project we analyze the sentiment in the House of Commons in debates related to the European Union during a critical time in the United Kingdom. By doing so, we re-visit the topic of Rheault et al. (2016) in a later and controversial time period, around the Brexit referendum and UK's withdrawal from the EU. Surprisingly, there were no major swings in emotional polarity during the 10 years we analyzed and the overall sentiment was positive, although differences among parties and between topics are observable.
+
+
+
+# References
+
+Benoit, K., & Matsuo, A. (2023). spacyr: Wrapper to the 'spaCy' 'NLP' Library. https://CRAN.R-project.org/package=spacyr
+
+Helm, T. (2016). British Euroscepticism: a brief history. *The Guardian*. <https://www.theguardian.com/politics/2016/feb/07/british-euroscepticism-a-brief-history>
+
+House of Commons Library. (2016). *Analysis of the EU Referendum results 2016*. <https://commonslibrary.parliament.uk/research-briefings/cbp-7639/>. Accessed 21.08.2024
+
+Hu, M., & Liu, B. (2004). Mining and summarizing customer reviews. *Proceedings of the 2004 ACM SIGKDD International Conference on Knowledge Discovery and Data Mining - KDD ’04.*
+
+Hutto, C., & Gilbert, E. (2014). VADER: A Parsimonious Rule-Based Model for Sentiment Analysis of Social Media Text. *Proceedings of the International AAAI Conference on Web and Social Media*, 8(1), 216-225.
+
+Iyengar, S. et al. (2012). Affect, no ideology: A social identity perpective on polarization. *Public opinion quaterly*, 76(3), 405-431
+
+Murphy, M. (2021). Northern Ireland and Brexit: where sovereignty and stability collide?. *Journal of Contemporary European Studies*, 29(3), 405-418
+
+Nielsen, F. (2011). *A new anew: Evaluation of a word list for sentiment analysis in microblogs.*
+
+mySociety. *Hello, we're mySociety*. <https://www.mysociety.org/about/>. Accessed 30.08.2024
+
+Public Administration and Constitutional Affairs Committee. (2017). Lessons Learned from
+the EU Referendum (Twelth Report of Session 2016-17). *House of Commons*.
+
+Rheault, L., Beelen, K., Cochrane, C., & Hirst, G. (2016). Measuring emotion in parliamentary debates with automated textual analysis. *PLoS ONE*, 11(12). https://doi.org/10.1371/journal.pone.0168843
+
+Rone, J. (2023). “Enemies of the people”? Diverging discourses on sovereignty in media coverage of Brexit. *British Politics*, 18, 519-537
+
+Russell, M. (2021). Brexit and Parliament: The Anatomy of a Perfect Storm. *Parliamentary Affairs*, 74, 443-463  
+
+TheyWorkForYou *About TheyWorkForYou*. <https://www.theyworkforyou.com/about/>. Accessed 30.08.2024
+
+UK Parliament a). *Debates*. <https://www.parliament.uk/about/how/business/debates/>. Accessed 30.08.2024
+
+UK Parliament b). *Give way*. <https://www.parliament.uk/site-information/glossary/give-way/>. Accessed 30.08.2024
+
+UK Parliament c). *Parliamentary Sovereignty*. <https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/>. Accessed 21.08.2024
+
+van Atteveldt, W. et al. (2021). The Validity of Sentiment Analysis: Comparing Manual Annotation, Crowd-Coding, Dictionary Approaches, and Machine Learning Algorithms. *Communication Methods and Measures*, 15(2), 121-140
+
+Wijffels, Jan. 2021. Udpipe: Tokenization, Parts of Speech Tagging, Lemmatization and Dependency Parsing with the ’UDPipe’ ’NLP’ Toolkit. https://CRAN.R-project.org/package=udpipe.
