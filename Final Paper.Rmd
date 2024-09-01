@@ -1,5 +1,6 @@
 ---
-title: "Britain_on_Europe"
+title: "Sentiments in the UK Parliament:"
+subtitle: "10 years of debates about the EU"
 output:
   html_document:
     df_print: paged
@@ -7,39 +8,44 @@ output:
 date: "`r Sys.Date()`"
 ---
 
-# The EU from a British perspective: 17 years of debates in the British parliament
-
-## Introduction
+# Introduction
 The positive outcome of the British referendum to withdrawal from the EU in 2016 came as a surprise to most other member states of the European Union.With a wining margin of only 3.8% and an overall approval to leave the European Union by 51.9% the decision was conceivably close (House of Commons Library, 2016). This direct democratic approach was relatively unusual especially since the United Kingdom of England and Northern Ireland (UK) has a strong representative democracy in which the sovereignty of the parliament is "the most important part of the UK constitution" (UK Parliament)^[The parliament generally refers to the house of commons. Thus in the following text house of commons and parliament are used interchangeably]. Furthermore, the Prime Minister at the time David Cameron as well as the biggest opposition party very much favoured remaining in the EU and thus disagreeing with the outcome of the referendum (cf. p.445, Russell, 2020). This vast majority for remaining in the EU in the parliament did not only lead to "no proper planning for a Leave vote" (Public Administration and Constitutional Affairs Committee, 2017, p. 4), but also to a clear difference between what most members of parliament (MP) and what the population wanted. The struggle of how to leave the EU thus triggered nearly 4 years of debates in the house of commons.
 
-Russell (2020) raises that these debates which overturned deals with the EU multiple times even lead to an anti-parliamentary rhetoric from the Prime Ministers Theresa May as well as Boris Johnson and he Attorney General Geoffrey Cox.
+Russell (2020) raises that these debates which overturned deals with the EU multiple times even lead to an anti-parliamentary rhetoric from the Prime Ministers Theresa May as well as Boris Johnson and the Attorney General Geoffrey Cox.
 
-This anti-parliamentary populist rhetoric raises the question whether the UK parliament really had a strong positive sentiment towards the EU and even more interesting if that was especially strong during the times of the Brexit debates.
+Therefore, debates about the EU were clearly an emotional topic that lead to heated debates. Iyengar et.al show that strong emotions not only shape politics but also the society itself and can lead to an increased divide between political partisans.
 
-This clearly shows that the European Union and especially Brexit is a highly emotional topic in British politics. 
+Interestingly, Rhealut et al. find in their paper, that the sentiments in parliamentary debates became more positive in the last two hundred years
 
-- Emotion shape plitics
-- Rheault: Measuring Emotion in Parliamentary Debates with Automated Textual Analysis, shows that debates became more positive.
+However in their study they take into account every debate between 1909 and 2013 and don't focus on specific areas.
 
-Thus the following paper tries to find answers to the following research question: 
+Therefore this paper tries to build on their findings and control whether the positive trend can also be seen in debates about especially emotional topics. As mentioned above such a case is the relations towards the EU in the UK parliament during the time of Brexit.
 
-* How did the sentiment in debates about EU topics changed over time in the house of commons?
+We thus conduct a sentiment analysis on the debates about the EU from 2012 until 2022 and try to answer the following research questions: 
 
-* Is the sentiment significantly different during debates about Brexit or withdrawl from the EU?
+* How did the sentiment in debates about an emotional topic like the EU changed over time in the house of commons?
 
-* Is there a visible difference depending on the current majorities in parliament?
+* Is there a visible difference between the opposition and the ruling party?
+
+* Is the sentiment significantly different during debates about Brexit/withdrawl from the EU?
+
+
+We aim to do so by first describing our data in detail which we gathered web scrapping parliamentary debates between October 2012 and October 2022. Following we will describe the conducted sentiment analysis using a dictionary build especially for parliamentary debates. The gathered results are discussed based on the time, party, and three main topics; Brexit, Economy, Migration.
+
+Finally we answer the posed research questions in the last section.
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Data
-To answer the question we need the data of the debates in the british parliament. To gather these parliamentary debates, we web scraped the the debates in the house of commons from the TheyWorkForYou website. TheyWorkForYou is run by mySociety a british non for profit organization and aims to make the work of the Uk parliament more accesible and transparent to the wider public (source). In this capacity they also publish a mirrored version of Hansard the official webpage for transcripts of UK debates (source). 
+To answer the question we need the data of the debates in the British parliament. To gather these parliamentary debates, we web scraped the debates in the house of commons and westminster hall from the TheyWorkForYou website. TheyWorkForYou is run by mySociety a british non for profit organization and aims to make the work of the Uk parliament more accesible and transparent to the wider public (source). In this capacity they also publish a mirrored version of Hansard the official webpage for transcripts of UK debates (source). 
 
 In our work we use TheyWorkForYou instead of Hansard as the content is exactly the same but Hansard uses CloudFlare which makes web scraping significantly more complicated.
 
 ### Data collection
-The data we gather include all debates between 27.06.2007 until the 19.08.2024. The starting date is chosen as it is the first day of the Brown ministry the first government that had the possibility to retreat from the EU due to Article 50 (source) (more detailed explanation). The data is constructed by searching for all debates in the time frame that mention the European Union, European Commission, European Council, or Brexit. These debates are then filtered to only include debates that have European Union, European Commission, European Council, Brexit, European, and Europe in their title and are no written answers. Furthermore the date of the debate is saved as well as the name and party/position of the speakers in the debate are saved. Thus, resulting in a data frame representing 13,831 different debates.
+The data we gather include all debates between 25.10.2012 until the 25.10.2022. The time frame is chosen to cover 10 years and cover the years before and after the Referendum as well as official Brexit. The data is constructed by searching for all debates in the time frame where either the European Union, the European Commission, the European Council, or Brexit was mentioned. These debates are then filtered to only include debates that have European Union, European Commission, European Council, Brexit, European, Europe, or EU (case insensitive) in their title and are no written answers. The web scraping algorithm covers 61 two month periods as previous tries showed that only up to three month time spans could be scraped reliably. Furthermore the date of the debate is saved as well as the name and party/position of the speakers.
 
 ```{r, eval=FALSE, echo=TRUE}
 # Webscraping
@@ -281,9 +287,19 @@ write.csv(df_clean, "Parliamentary_Debates_Combined.csv")
 ```
 
 ### Ethical considerations
-Web scrapping websites always comes with certain ethical considerations. Checking the robots.txt of the websites shows that it is legal to scrape the debates in the house of commons. Despite the legal considerations sustainable approaches were used to scrape the data. First of all scraping was conducted during the night to avoid overloading the page in times when it is frequently used. Second a waiting time between 3 and 4 seconds was chosen before scraping to ensure not to burden the webpage to much.
+Web scrapping websites always comes with certain ethical considerations. Checking the robots.txt of the websites shows that it is legal to scrape the debates in the house of commons. Despite the legal considerations sustainable approaches were used to scrape the data. First of all scraping was conducted during the night to avoid overloading the page in times when it is frequently used. Second a waiting time 30 seconds was chosen before scraping a new time frame to ensure not to burden the webpage to much.
 
 ## Data cleaning
+To make the data useful for further analysis cleaning is necessary. We use the before constructed combined data frame of the 61 two month time spans which was already cleaned to include only distinct rows. In a next step all rows containing missing values in the speaker name column are deleted as they are not speeches in debates but descriptions or commentaries that follow the same logic in the source code of the website and are thus scraped as well. 
+
+As parliamentary debates often follow unwritten rules and some sentences might occur often without carrying significant reasons, a filter is applied to find often reoccurring statements. The statements that follow protocol like ""Will the right hon. Gentleman give way?" (cf. UK Parliament b)), which indicates the wish of an MP to speak during another MPs speech, are deleted as they could influence the overall sentiment even though they are mandatory to raise for the MPs. Furthermore descriptions of actions like "rose--" are deleted as well.
+
+To conduct an analysis depending on the speaker party the party of the speaker has to be identified. Unfortunately on the website the party is not clearly indicated. Looking at the data we see 1436 distinct values for the parties. This is reduced by implementing a new column that includes the Party, Minister, Speaker, Shadow Minister, depending on if a substring of one of these exists. Then individuals with multiple matches are further analysed. If a party is one of the matches, that party is chosen. If there are no parties in the description, the names are gathered and parties are hand coded to the politicians and added to the final column. Speaker is the only non party in the column as they have to be non-partisan in their role.
+
+A further formality of the House of commons is to instigate a motion by starting with "I beg to move,..." (cf. UK Parliament a)). As this would influence the sentiment of a speech the substring is deleted if it appears.
+
+Finally a further column is created including Government or Opposition depending on the parties of the speaker being in the government or in opposition. 
+
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 
 library("tidyverse")
@@ -308,8 +324,6 @@ library(udpipe)    # for POS tagging
 library(spacyr)    # for POS tagging
 library(writexl)    # to write xlsx
 ```
-**THIS WAS LEFT HERE FROM ADAM - NEEDS TO CHANGE**
-We do not have duplicates in the data as a whole, every row is unique. There are duplicate speeches though, the content of two speeches can be the same (e.g. if they were said by a different speaker or at a different time). Examples of such cases are "Will the Minister give way?", "Will the hon. Gentleman give way?", a simple "I will." or "No.", etc. - they are common expressions often said in parliamentary debates so the duplicates are not results of an error in the scraping or the structure of the data, and are valid. While checking the duplicate speeches we also notice some empty ones - since they carry no information regarding our analysis, we delete them. Finally a technicality, the dates of the debates were actually stored as character strings in R, but for our analysis we need them as dates, so we convert them. 
 
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 #############################
@@ -358,10 +372,11 @@ filter_list <- c("rose—","On a point of order, Mr Speaker.","indicated assent.
 df_clean <- df_clean %>% filter(!speech_content %in% filter_list)
 
 # clean the party column
-# Check which parties exist
-table(df_clean$speaker_party)
+# Check the current number of distinct values for the party
+print(paste0("The current number of distinct party values: ",n_distinct(df_clean$speaker_party)))
 
-# List of parties in the parliament
+# List of parties in the parliament during the 10 years
+# as wel as other important positions
 Parties <- c("Liberal Democrat", "Liberal Democrats", "Independent", 
              "Labour/Co-operative", "Co-operative","Labour", "Green", 
              "DUP", "Speaker", "Scottish National Party", "Conservative", 
@@ -372,17 +387,19 @@ df_clean$Party <- NA
 
 # Loop through the search list and check for each substring, with case insensitivity
 for (search_string in Parties) {
-  # Create a regex pattern to make the match more flexible
+  # Creates a regex pattern to make the match more flexible. Ex. Liberal Democrats should be catched as Liberal Democrat.
   pattern <- paste0("\\b", search_string, "s?\\b")
   
-  # Add the substring to the new column if it's found in the Text column
+  # Adds the substring to the new column if it's found in the Text column
   df_clean$Party <- ifelse(grepl(pattern, df_clean$speaker_party, ignore.case = TRUE), 
                               ifelse(is.na(df_clean$Party), search_string, 
                                      paste(df_clean$Party, search_string, sep = ", ")),
                               df_clean$Party)
 }
 
-table(df_clean$Party)
+# Check number and exact description of the remaining parties
+print(paste0("The new number of distinct party values: ",n_distinct(df_clean$Party)))
+print(unique(df_clean$Party))
 
 df_clean$Party <- gsub("Co-operative, Shadow Minister, Minister", "Co-operative", df_clean$Party)
 df_clean$Party <- gsub("Green, Shadow Minister, Minister", "Green", df_clean$Party)
@@ -395,16 +412,16 @@ df_clean$Party <- gsub("Labour, Shadow Minister, Minister", "Labour", df_clean$P
 df_clean$Party <- gsub("Independent, Speaker", "Independent", df_clean$Party)
 
 
-table(df_clean$speaker_name[df_clean$Party=="Secretary, Shadow Minister, Minister"])
-table(df_clean$speaker_name[df_clean$Party=="Shadow Minister, Minister"])
-table(df_clean$speaker_name[df_clean$Party=="Secretary, Shadow Minister, Minister"])
-table(df_clean$speaker_name[df_clean$Party=="Secretary, Minister"])
-table(df_clean$speaker_name[df_clean$Party=="Speaker, Secretary"])
-table(df_clean$speaker_name[df_clean$Party=="Green, Conservative"])
-table(df_clean$speaker_name[df_clean$Party=="Labour, Green"])
-table(df_clean$speaker_name[df_clean$Party=="Liberal Democrat, DUP"])
-table(df_clean$speaker_name[df_clean$Party=="Minister"])
-table(df_clean$speaker_name[df_clean$Party=="Secretary"])
+unique(df_clean$speaker_name[df_clean$Party=="Secretary, Shadow Minister, Minister"])
+unique(df_clean$speaker_name[df_clean$Party=="Shadow Minister, Minister"])
+unique(df_clean$speaker_name[df_clean$Party=="Secretary, Shadow Minister, Minister"])
+unique(df_clean$speaker_name[df_clean$Party=="Secretary, Minister"])
+unique(df_clean$speaker_name[df_clean$Party=="Speaker, Secretary"])
+unique(df_clean$speaker_name[df_clean$Party=="Green, Conservative"])
+unique(df_clean$speaker_name[df_clean$Party=="Labour, Green"])
+unique(df_clean$speaker_name[df_clean$Party=="Liberal Democrat, DUP"])
+unique(df_clean$speaker_name[df_clean$Party=="Minister"])
+unique(df_clean$speaker_name[df_clean$Party=="Secretary"])
 
 
 # Hand coded data frame based on the names gathered from the table before
@@ -417,7 +434,9 @@ df_clean <- df_clean %>%
   mutate(Party = coalesce(Party.new, Party)) %>%
   select(-Party.new)
 
-table(df_clean$Party)
+print(table(df_clean$Party))
+
+
 
 # Delete the phrase "I beg to move" as it is mandatory at the beginning of every debate
 df_clean$speech_content <- sub("^I beg to move","",df_clean$speech_content)
@@ -425,7 +444,7 @@ df_clean$speech_content <- sub("^I beg to move","",df_clean$speech_content)
 # Format the debate_date column so that it contains dates not character strings
 df_clean$debate_date <- dmy(df_clean$debate_date)
 
-# A later function needs the speeches to be in a column called 'text' se we rename it
+# A later function needs the speeches to be in a column called 'text' so we rename it
 names(df_clean)[names(df_clean) == "speech_content"] <- "text"
 
 # Add a new column indicating whether the party was in the opposition or government at that time.
@@ -443,6 +462,86 @@ df_clean$Government_Opposition <- ifelse(
   )
 )
 ```
+
+### Data exploration
+The resulting cleaned data frame includes 59,813 speeches in 1,566 debates.
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+print(n_distinct(df_clean$debate_date, df_clean$debate_title, na.rm = TRUE))
+
+number_debates <- df_clean %>% 
+  group_by(year) %>%
+  summarize(distinct_combinations = n_distinct(debate_date, debate_title))
+print(number_debates)
+
+number_speakers <- df_clean %>% 
+  group_by(year) %>%
+  summarize(distinct_combinations = n_distinct(speaker_name))
+print(number_speakers)
+
+```
+
+When looking at the results by year it gets obvious that debates on EU topics drastically increased during the Brexit years from 2016 until 2020. Not only did significantly more MPs contributed to the debate but also the number of debates itself is five times higher with 361 debates in 2018 compared to 68 in 2015 and even less in 2014.
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+
+custom_stopwords <- c("hon", "minister", "friend", "want", "can", "prime", "beg",
+                      "parliament", "house", "commons")
+
+tidy_speeches <- df_clean %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words, by = "word") %>%
+  filter(!word %in% custom_stopwords)
+
+word_counts <- tidy_speeches %>%
+  count(year, Government_Opposition, word, sort = TRUE)
+
+
+top_words_combined <- word_counts %>%
+  group_by(year) %>%
+  top_n(15, n)
+
+combined_plot <- ggplot(top_words_combined, aes(x = reorder(word, n), y = n)) +
+  geom_bar(stat = "identity", position = "dodge", fill = "orange") +
+  coord_flip() +
+  facet_wrap(~ year, scales = "free_y") +
+  labs(title = "Most Common Words by Year and Government/Opposition",
+       x = "Words",
+       y = "Frequency") +
+  theme_minimal()
+
+print(combined_plot)
+```
+To investigate the further data we look at the most used words in the data frame first by year and then by year and belonging to either Opposition or Government.
+
+It is clear to see that referendum pops up first in 2013 and then in 2015 and 2016 again. In the years 2018 and 2019 the deal with the EU became more important. Overall, it is clear, that Brexit is the most important topic during the years
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+filtered_words <- word_counts %>%
+  filter(!is.na(Government_Opposition)) %>%  # Change to "Opposition" if needed
+  group_by(year, Government_Opposition) %>%
+  top_n(15, n) %>%
+  ungroup()
+
+plots <- filtered_words %>%
+  group_by(year, Government_Opposition) %>%
+  do(plots = ggplot(., aes(x = reorder(word, n), y = n, fill = Government_Opposition)) +
+       geom_bar(stat = "identity") +
+       coord_flip() +
+       labs(title = paste("Most Common Words in", unique(.$year), "-", unique(.$Government_Opposition)),
+            x = "Words",
+            y = "Frequency") +
+       theme_minimal() +
+       scale_fill_manual(values = c("Government" = "steelblue", "Opposition" = "tomato1"))) %>%
+  .$plots
+
+# Print each plot
+for (plot in plots) {
+  print(plot)
+}
+
+
+```
+Comparing the topics by positions of the MPs surprisingly does not show a big difference. This is understandable as debates often are concerned with certain topics thus the most frequent words are likely presenting the topics that were discussed frequently in the parliament.
 
 ## Sentiments
 Sentiment analysis is a technique used to determine the emotional tone (positive, negative or neutral) of a digital text, in our case parliamental speeches. For most cases, it is conducted by a rule-based or a machine learning approach. While the latter can be used to understand more complex and interesting concepts, it nowadays often utilizes deep learning and other complex methods that go beyond the concepts learned in the course and the purpose of this project. Thus, while we acknowledge that determining the sentiment of a text (speech) is also not a simple task, we will use the rule-based (or dictionary based) approach with a custom lexicon created from a corpus of parliamentary debates (**in UK etc.**) by Rheault et al. (2016). Using a domain-specific sentiment dictionary is important because lexicons attuned on different domains than the ones they are used for often perform poorly in sentiment analysis tasks.
@@ -486,6 +585,7 @@ We validate the performance of the lemmatizer and POS tagger by taking a random 
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Load the POS tagged data and model
 load("pos.RData")
+spacy_install()
 m_eng_loaded <- udpipe_load_model(file = "english-ewt-ud-2.5-191206.udpipe")
 
 # Sample 100 speeches
@@ -720,6 +820,12 @@ Rheault, L., Beelen, K., Cochrane, C., & Hirst, G. (2016). Measuring emotion in 
 
 Russell, M. (2021). Brexit and Parliament: The Anatomy of a Perfect Storm. *Parliamentary Affairs*, 74, 443-463  
 
-UK Parliament. *Parliamentary Sovereignty*. <https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/>. Accessed 21.08.2024
+UK Parliament a). *Debates*. <https://www.parliament.uk/about/how/business/debates/>. Accessed 30.08.2024
+
+UK Parliament b). *Give way*. <https://www.parliament.uk/site-information/glossary/give-way/>. Accessed 30.08.2024
+
+UK Parliament c). *Parliamentary Sovereignty*. <https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/>. Accessed 21.08.2024
+
+
 
 Wijffels, Jan. 2021. Udpipe: Tokenization, Parts of Speech Tagging, Lemmatization and Dependency Parsing with the ’UDPipe’ ’NLP’ Toolkit. https://CRAN.R-project.org/package=udpipe.
