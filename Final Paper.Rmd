@@ -9,26 +9,23 @@ date: "`r Sys.Date()`"
 ---
 
 # Introduction
-The positive outcome of the British referendum to withdrawal from the EU in 2016 came as a surprise to most other member states of the European Union.With a wining margin of only 3.8% and an overall approval to leave the European Union by 51.9% the decision was conceivably close (House of Commons Library, 2016). This direct democratic approach was relatively unusual especially since the United Kingdom of England and Northern Ireland (UK) has a strong representative democracy in which the sovereignty of the parliament is "the most important part of the UK constitution" (UK Parliament)^[The parliament generally refers to the house of commons. Thus in the following text house of commons and parliament are used interchangeably]. Furthermore, the Prime Minister at the time David Cameron as well as the biggest opposition party very much favoured remaining in the EU and thus disagreeing with the outcome of the referendum (cf. p.445, Russell, 2020). This vast majority for remaining in the EU in the parliament did not only lead to "no proper planning for a Leave vote" (Public Administration and Constitutional Affairs Committee, 2017, p. 4), but also to a clear difference between what most members of parliament (MP) and what the population wanted. The struggle of how to leave the EU thus triggered nearly 4 years of debates in the house of commons.
+Parliamentary debates are at the heart of every democratic society. Surely the later influences what is discussed in the parliament but research by Iyengar et.al (2012) suggests that the tone of discourse between parties and their campaigns can shape the society by increasing the divide between the different partisan groups as well. Especially emotional topics have a strong influence on such a development.
 
-Russell (2020) raises that these debates which overturned deals with the EU multiple times even lead to an anti-parliamentary rhetoric from the Prime Ministers Theresa May as well as Boris Johnson and the Attorney General Geoffrey Cox.
+Interestingly, Rhealut et al. (2016) find in their paper, that the sentiments in parliamentary debates in the UK became more positive in the last century, although there is a perception that society is becoming more divided. Their research considers every debate between 1909 and 2013 in the house of commons not focusing on especially on an emotional topic that was strongly debated in public and the positive increase could be due to more bureaucratic debates on uncontroversial topics. Thus the following paper takes a look at the sentiments connected to one of the more controversial topics in the British parliament; the European Union (EU) during times of Brexit.
 
-Therefore, debates about the EU were clearly an emotional topic that lead to heated debates. Iyengar et.al show that strong emotions not only shape politics but also the society itself and can lead to an increased divide between political partisans.
+The positive outcome of the British referendum to withdrawal from the EU in 2016 came as a surprise to most other member states of the European Union. With a winning margin of only 3.8% and an overall approval to leave the European Union by 51.9% the decision was conceivably close (House of Commons Library, 2016). This direct democratic approach was relatively unusual especially since the United Kingdom of England and Northern Ireland (UK) has a strong representative democracy in which the sovereignty of the parliament is "the most important part of the UK constitution" (UK Parliament)^[The parliament generally refers to the house of commons. Thus, in the following text house of commons and parliament are used interchangeably]. Furthermore, the Prime Minister at the time David Cameron as well as the biggest opposition party very much favoured remaining in the EU and thus disagreeing with the outcome of the referendum (cf. p.445, Russell, 2020). This vast majority for remaining in the EU in the parliament did not only lead to "no proper planning for a Leave vote" (Public Administration and Constitutional Affairs Committee, 2017, p. 4), but also to a clear difference between what most members of parliament (MP) and what the population wanted. 
 
-Interestingly, Rhealut et al. find in their paper, that the sentiments in parliamentary debates became more positive in the last two hundred years
+Russell (2020) raises that the debates about the European Union which overturned deals with the EU multiple times even lead to an anti-parliamentary rhetoric from the Prime Ministers Theresa May as well as Boris Johnson and the Attorney General Geoffrey Cox. Also the news took strong partisanship towards one side with *The Daily Mail* headlining “Enemies of the People” towards the sovereignty of the Parliament (cf. p.520 Rone (2023)).
 
-However in their study they take into account every debate between 1909 and 2013 and don't focus on specific areas.
-
-Therefore this paper tries to build on their findings and control whether the positive trend can also be seen in debates about especially emotional topics. As mentioned above such a case is the relations towards the EU in the UK parliament during the time of Brexit.
+Although this is not a new development as the UK historically was rather Eurosceptic (cf. Helm (2016)), it definitely makes it a controversial topic.
 
 We thus conduct a sentiment analysis on the debates about the EU from 2012 until 2022 and try to answer the following research questions: 
 
 * How did the sentiment in debates about an emotional topic like the EU changed over time in the house of commons?
 
-* Is there a visible difference between the opposition and the ruling party?
+* Is there a significant difference in the sentiments between the opposition and the ruling party?
 
-* Is the sentiment significantly different during debates about Brexit/withdrawl from the EU?
-
+* Is the sentiment significantly different during debates about highly controversial topics like Brexit?
 
 We aim to do so by first describing our data in detail which we gathered web scrapping parliamentary debates between October 2012 and October 2022. Following we will describe the conducted sentiment analysis using a dictionary build especially for parliamentary debates. The gathered results are discussed based on the time, party, and three main topics; Brexit, Economy, Migration.
 
@@ -40,12 +37,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Data
-To answer the question we need the data of the debates in the British parliament. To gather these parliamentary debates, we web scraped the debates in the house of commons and westminster hall from the TheyWorkForYou website. TheyWorkForYou is run by mySociety a british non for profit organization and aims to make the work of the Uk parliament more accesible and transparent to the wider public (source). In this capacity they also publish a mirrored version of Hansard the official webpage for transcripts of UK debates (source). 
+To answer the question we need the data of the debates in the British parliament. To gather these parliamentary debates, we web scraped the debates in the house of commons and Westminster hall from the *TheyWorkForYou* website. *TheyWorkForYou* is run by *mySociety* a British non for profit organization and aims to make the work of the Uk parliament more accessible and transparent to the wider public (cf. TheyWorkForYou, mySociety). In this capacity they also publish a mirrored version of *Hansard* the official webpage for transcripts of UK debates. 
 
-In our work we use TheyWorkForYou instead of Hansard as the content is exactly the same but Hansard uses CloudFlare which makes web scraping significantly more complicated.
+In our work we use *TheyWorkForYou* instead of *Hansard* as the content is exactly the same but *Hansard* uses CloudFlare which makes web scraping significantly more complicated.
 
 ### Data collection
-The data we gather include all debates between 25.10.2012 until the 25.10.2022. The time frame is chosen to cover 10 years and cover the years before and after the Referendum as well as official Brexit. The data is constructed by searching for all debates in the time frame where either the European Union, the European Commission, the European Council, or Brexit was mentioned. These debates are then filtered to only include debates that have European Union, European Commission, European Council, Brexit, European, Europe, or EU (case insensitive) in their title and are no written answers. The web scraping algorithm covers 61 two month periods as previous tries showed that only up to three month time spans could be scraped reliably. Furthermore the date of the debate is saved as well as the name and party/position of the speakers.
+The data we gather include all debates between 25.10.2012 until the 25.10.2022. The time frame is chosen to cover 10 years and cover the years before and after the Referendum as well as official Brexit (31.01.2020). The data is constructed by searching for all debates in the time frame where either the European Union, the European Commission, the European Council, or Brexit was mentioned. These debates are then filtered to only include debates that have European Union, European Commission, European Council, Brexit, European, Europe, or EU (case insensitive) in their title and are no written answers. The web scraping algorithm covers 61 two month periods as previous tries showed that only up to three month time spans could be scraped reliably. Furthermore the date of the debate is saved as well as the name and party/position of the speakers.
 
 ```{r, eval=FALSE, echo=TRUE}
 # Webscraping
@@ -286,7 +283,7 @@ df_clean <- distinct(combined_data_frame)
 write.csv(df_clean, "Parliamentary_Debates_Combined.csv")
 ```
 
-### Ethical considerations
+## Ethical considerations
 Web scrapping websites always comes with certain ethical considerations. Checking the robots.txt of the websites shows that it is legal to scrape the debates in the house of commons. Despite the legal considerations sustainable approaches were used to scrape the data. First of all scraping was conducted during the night to avoid overloading the page in times when it is frequently used. Second a waiting time 30 seconds was chosen before scraping a new time frame to ensure not to burden the webpage to much.
 
 ## Data cleaning
@@ -434,7 +431,7 @@ df_clean <- df_clean %>%
   mutate(Party = coalesce(Party.new, Party)) %>%
   select(-Party.new)
 
-print(table(df_clean$Party))
+knitr::kable(table(df_clean$Party))
 
 
 
@@ -464,20 +461,21 @@ df_clean$Government_Opposition <- ifelse(
 ```
 
 ### Data exploration
-The resulting cleaned data frame includes 59,813 speeches in 1,566 debates.
+The resulting cleaned data frame includes 59,813 speeches in 1,566 debates. As seen above most speeches are held by the *Conservative* followed by the *Labour* party. The other parties have significantly less speeches which is in accordance with the number of seats these parties had in the parliament.
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 print(n_distinct(df_clean$debate_date, df_clean$debate_title, na.rm = TRUE))
 
 number_debates <- df_clean %>% 
   group_by(year) %>%
   summarize(distinct_combinations = n_distinct(debate_date, debate_title))
-print(number_debates)
+
+knitr::kable(number_debates, caption = "Number of debates per year")
 
 number_speakers <- df_clean %>% 
   group_by(year) %>%
   summarize(distinct_combinations = n_distinct(speaker_name))
-print(number_speakers)
 
+knitr::kable(number_speakers, caption = "Number of speakers per year")
 ```
 
 When looking at the results by year it gets obvious that debates on EU topics drastically increased during the Brexit years from 2016 until 2020. Not only did significantly more MPs contributed to the debate but also the number of debates itself is five times higher with 361 debates in 2018 compared to 68 in 2015 and even less in 2014.
@@ -495,7 +493,16 @@ tidy_speeches <- df_clean %>%
 word_counts <- tidy_speeches %>%
   count(year, Government_Opposition, word, sort = TRUE)
 
+knitr::kable(sum(word_counts$n), caption = "Number of words")
 
+total_words_by_year <- word_counts %>% 
+  group_by(year) %>%
+  summarize(total_words = sum(n))
+knitr::kable(total_words_by_year, caption = "Number of words per year")
+```
+To investigate the data further we look at words used. Overall with removing stopwords, 3,140,383 words are spoken in the course of 10 years on topics concerning the EU. Most words are similar to the number of debates spoken in 2017 to 2019. To look at the most used words bar plots are created to shows the most frequent words by year and then if it was said by a member of the opposition or the ruling party.
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 top_words_combined <- word_counts %>%
   group_by(year) %>%
   top_n(15, n)
@@ -512,35 +519,31 @@ combined_plot <- ggplot(top_words_combined, aes(x = reorder(word, n), y = n)) +
 print(combined_plot)
 ```
 
-To investigate the further data we look at the most used words in the data frame first by year and then by year and belonging to either Opposition or Government.
+It is clear to see that referendum pops up first in 2013 and then in 2015 and 2016 again. In the years 2018 and 2019 the deal with the EU became more important. Overall, it shows, that Brexit is the most important topic from 2016 on. 
+In 2019 agreement is included in the 15 most frequent words. This is probably due to the fear of a no-deal Brexit as after two years the after submitting the intention to leave the EU, Article 50 of the EU Treaty would cause the country to leave. 
 
-It is clear to see that referendum pops up first in 2013 and then in 2015 and 2016 again. In the years 2018 and 2019 the deal with the EU became more important. Overall, it is clear, that Brexit is the most important topic during the years
+Furthermore, northern and Ireland become frequent words in 2020 and 2021 as Northern Ireland and its relation towards it southern neighbour the republic of Ireland was one of the major issues in the Brexit debates. The connections of territory and institutions across border and the openness of the borders itself as part of the peace treaty in 1998 were important talking points in the negotiations between the UK and the EU (cf. p.416 f. Murphy (2021)).
 
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+
+library(dplyr)
+library(ggplot2)
 filtered_words <- word_counts %>%
   filter(!is.na(Government_Opposition)) %>%  # Change to "Opposition" if needed
-  group_by(year, Government_Opposition) %>%
+  group_by(Government_Opposition) %>%
   top_n(15, n) %>%
   ungroup()
 
-plots <- filtered_words %>%
-  group_by(year, Government_Opposition) %>%
-  do(plots = ggplot(., aes(x = reorder(word, n), y = n, fill = Government_Opposition)) +
-       geom_bar(stat = "identity") +
-       coord_flip() +
-       labs(title = paste("Most Common Words in", unique(.$year), "-", unique(.$Government_Opposition)),
-            x = "Words",
-            y = "Frequency") +
-       theme_minimal() +
-       scale_fill_manual(values = c("Government" = "steelblue", "Opposition" = "tomato1"))) %>%
-  .$plots
+Gov_plot <- ggplot(filtered_words, aes(x = reorder(word, n), y = n)) +
+  geom_bar(stat = "identity", position = "dodge", fill = "steelblue") +
+  coord_flip() +
+  facet_wrap(~ Government_Opposition, scales = "free_y") +
+  labs(title = "Most Common Words by Government/Opposition",
+       x = "Words",
+       y = "Frequency") +
+  theme_minimal()
 
-# Print each plot
-for (plot in plots) {
-  print(plot)
-}
-
-
+print(Gov_plot)
 ```
 
 Comparing the topics by positions of the MPs surprisingly does not show a big difference. This is understandable as debates often are concerned with certain topics thus the most frequent words are likely presenting the topics that were discussed frequently in the parliament.
@@ -586,7 +589,7 @@ We validate the performance of the lemmatizer and POS tagger by taking a random 
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Load the POS tagged data and model
 load("pos.RData")
-spacy_install()
+#spacy_install()
 m_eng_loaded <- udpipe_load_model(file = "english-ewt-ud-2.5-191206.udpipe")
 
 # Sample 100 speeches
@@ -598,12 +601,12 @@ pos_validation_UDPipe <- udpipe_annotate(m_eng_loaded, x = sampled_speeches$text
   as.data.frame()
 
 # Lemmatize and POS tag with Spacyr
-spacy_initialize(model = "en_core_web_sm")
-pos_validation_spacy <- spacy_parse(sampled_speeches$text, lemma = TRUE, pos = TRUE, tag = TRUE)
+#spacy_initialize(model = "en_core_web_sm")
+#pos_validation_spacy <- spacy_parse(sampled_speeches$text, lemma = TRUE, pos = TRUE, tag = TRUE)
 
 # Save files for easier manual validation in Excel
 pos_validation_UDPipe %>% write_xlsx("pos_validation_UDPipe.xlsx")
-pos_validation_spacy %>% write_xlsx("pos_validation_spacy.xlsx")
+#pos_validation_spacy %>% write_xlsx("pos_validation_spacy.xlsx")
 ```
 ### Mapping POS tags
 As the following lines shows, the POS tags form UDPipe are different from those in the sentiment dictionary. In the next step, we need to create a mapping between them.
@@ -712,11 +715,10 @@ df_clean %>%
   write_xlsx("sentiment_validation.xlsx")
 ```
 
-### Results
+# Results
+The following sections will show the found results of the sentiment analysis. First the temporal evolution of the sentiments is shown on a debate, quaterly, and yearly level. Then the difference between the sentiments of the Opposition and Government is looked at in more detail, and finally three main topics of the EU-UK relations are analysed.
 
-The following figures show the emotional polarity in the House of Commons during EU-related debates over time. The figures show the change in sentiments in different granularity - daily, quarterly and yearly. To make patterns more prevalent, we add smoothing lines as well to the plots.
-
-The first plot below shows us the most granular view on sentiments, by the dates of the debates. While some fluctuation is inevitable in the sentiments, at first glance it seems like the emotional polarity moves in an even range around its average and we cannot see the increasing trend over time reported by Rheault et al. (2016). The speeches from the 6th March 2014 contained no lemmas from the lexicon 
+## Sentiments over time
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Visualize as in the paper
 mblue <- "#002A48"
@@ -770,7 +772,12 @@ df_clean %>%
   ylab('Sentiment') +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
+
+
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Visualize the sentiment by year - standardized data, as in paper
 df_clean %>% 
   group_by(year) %>%
@@ -787,9 +794,19 @@ df_clean %>%
   scale_x_continuous(breaks=c(2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022))  +
   theme_minimal()
 
+Values_by_year <- df_clean %>% 
+  group_by(year) %>%
+  summarise(average_sentiment = ifelse(sum(sentiment_count) == 0, 0,
+                                       sum(sentiment_sum) / sum(sentiment_count)))
+knitr::kable(Values_by_year, caption = "Not Standardized Sentiment Value by Year")
+
 ```
 
 
+Aggregating the data on a yearly level shows the overall trend of sentiments in the UK parliament on topics related to the EU. The shown data is standardized. In the first years until 2017 a clear upwards trend can be observed indicating more positive sentiments. Between 2018 and 2022 the data however changes drastically between the years, going from its lowest in 2019 to second highest in 2020.
+
+
+## Sentiment by Government - opposition
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Plot by Government-Opposition sentiment
 df_clean %>% 
@@ -821,6 +838,24 @@ df_clean %>%
         legend.key.size=unit(2.5,"line"),
         legend.key = element_blank())
 ```
+
+The above plot shows the averaged sentiment per quarter. The dark blue line represents the speeches made by MPs that were part of the ruling party, whereas the light blue lines indicate MPs that are part of the opposition. Similar to the findings of Rheault et al. (2016) the general pattern between ruling party and opposition is very similar however with the opposition being slightly more negative. This makes sense as their name tells they are opposed to the government's work and are more likely to critique them out loud.
+
+Both groups show an increase after the referendum to leave the EU and a negative trend after the decision to leave it.
+
+This seems surprising for the more EU friendly opposition parties like Labour or the Scottish National Party, as the increase of the opposition is even stronger. This could have two possible explanations. For one the Opposition could have tried to portray the EU in a positive light to circumvent leaving after the referendum. The downwards trend then shows that there was no need for it as soon as Brexit was decided on. Another explanation could be the will for both parties to work together to guarantee smooth and beneficial negotiations instead of trying to oppose the ruling party as often as possible.
+
+On an aggregated level the controversial topic does not change the trend in sentiments between the opposing political sides significantly.
+
+
+## Sentiment by Subtopics
+As the data includes every possible debate which mentions the EU a lot of the debates could be about trivial topics and general agreement to uncontroversial laws. As this could lead to a generally more favourable sentiment in the debates a further filter is applied. The filter is topic specific and only includes debates about the topic Brexit, Economy, and Migration as these were main and controversial talking points in the relationship with the EU in the observed time frame. The data was gathered by hand coding a binary variable for every debate using the debate title, the first speech and if necessary the whole debate. The three topics where chosen as they stand as an example for important subtopics in the relations between the EU and the UK.  
+
+A debate was decided to be about Brexit if it fell in one of three categories. First if the debate was about the specifics of the withdrawal from the EU. Second if the debate was about direct negotiations with EU counterparts or debates about these. For example “Leaving the Eu: Fisheries Management” a debate about the progress of the negotiations with the EU fishery management. And third if it was about direct effects of leaving the EU as for example “Exiting the EU: Welsh Economy” which discusses the effects of leaving on the Welsh Economy. Not included are discussions about future plans that come after the decision to leave.
+
+Economy includes every debate that discusses economic topics and effects on the economy. However it does not include debates about specific niche industries as for example the “Welsh Sheep Meat Trade”.
+
+Migration includes every debate that is directly connected to migrants and migration. This includes refugee deals of the EU as well as EU related migration. The latter was often discussed as part of the cancellation of the free movement after leaving the EU.
 
 ```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 # Plot sentiments by selected topics
@@ -864,7 +899,7 @@ df_clean %>%
   geom_line(aes(y = sentismooth_economic), size = 2, colour=mblue) +
   xlab("Quarter") +
   ylab('Sentiment') +
-  ggtitle("Topic: Economic") +
+  ggtitle("Topic: Economy") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
@@ -891,18 +926,56 @@ df_clean %>%
   
 ```
 
-## References
+Looking at the results we see that for all subtopics the overall sentiment is slightly positive. Not all quarters are included in the data as some topics were not discussed in detail during certain quarters. Especially obvious to see for Migration were only 19 quarters exist instead of 41.
+
+Interestingly all topics have a positive increase of sentiments in 2017. Economy and Brexit also show a dump in 2019 and a final decrease in 2022. For Migration there is no data after 2020.
+
+The results state that there is not a clear difference in the highly controversial subtopics and that overall the sentiment in teh debates still stays positive. However, we see stronger contrasts with sentiments of individual quaters being very positive (Q3-2017 in Migration is above 0.5) as well as much less positive results (Q2-2021 in Economy is below 0.3). This for one could be due to less debates and thus stronger effects of single debates on the aggregated level. On the other hand it shows that there is greater variation when only taking niche topics.
+
+
+
+# Limitations
+When working with lexicon based approaches for sentiment analysis the strict rules it follows makes it perform poorly in comparison to machine learning or manual coding approaches (cf. p.128 f. van Atteveldt et. al (2021)). Therefore, this paper made use of a topic specific lexicon and tried to overcome the problem of negated sentences. Still, during validation it was obvious that sarcastic speeches are not unusual and will impact the sentiment analysis. Also very complex sentence structures which are common in parliamentary debates can change the sentiment of the speech. Validation showed non the less an okay precision leading to confidence in our results on an aggregated level. Individual speeches however could be easily misspecified and the analysis only works with sufficiently large data. Also, the debates in the parliament are under certain restrictions and traditions. Therefore, the MPs will not say directly what they think but rather use indirect and more polite speach making every debate slightly more positive. 
+
+Furthermore, our paper does a good job in showing the trends of the sentiments related to EU topics. But it fails to show causal relations. Our results therefore do not show what caused the difference in sentiments but rather that they exist. This is also the scope of our proposed questions should however trigger further research to show the reasons for possible sentiment changes in the debate.
+
+# Conclustion
+In the beginning of this paper three questions were put forward. Using Parliamentary debates in the UK about topics connected to the EU we analysed the sentiment of the Parliament connected to an emotional and controversial topic. Our findings show that even though controversial the sentiments of the speeches are relatively stable over time and throughout the 10 year time period overall positive. However there is not a continued positive trend observed as in Rheault et al. (2016).
+
+Investigating whether there is a significant difference between the opposition and ruling party lead to similar results as Rheault et al. (2016) found. Their sentiments follow a parallel trend where the opposition shows a slightly less positive sentiment. Indicating that they oppose the ruling party but still keep a certain level of politeness in their opposition. 
+
+Finally also the most controversial but still big enough topics Brexit, Economy, and Migration were looked at. They show a stronger variance with stronger extremes. But overall the sentiments here stay positive and vary around a value around 0.37. Only Brexit shows a steep decline in the last quarters of the analysis. 
+
+Given the limitations of the lexicon based approach as well as the causal relations, we can conclude that the sentiment of debates in the British parliament concerning the emotional EU related topics were slightly positive, however did not show a further positive trend. Also every subcategory showed a more positive sentiment right after the vote to leave in 2016 and a decline to previous or worse levels.
+
+#Pitch
+
+
+
+# References
 
 Benoit, K., & Matsuo, A. (2023). spacyr: Wrapper to the 'spaCy' 'NLP' Library. https://CRAN.R-project.org/package=spacyr
 
+Helm, T. (2016). British Euroscepticism: a brief history. *The Guardian*. <https://www.theguardian.com/politics/2016/feb/07/british-euroscepticism-a-brief-history>
+
 House of Commons Library. (2016). *Analysis of the EU Referendum results 2016*. <https://commonslibrary.parliament.uk/research-briefings/cbp-7639/>. Accessed 21.08.2024
+
+Iyengar, S. et al. (2012). Affect, no ideology: A social identity perpective on polarization. *Public opinion quaterly*, 76(3), 405-431
+
+Murphy, M. (2021). Northern Ireland and Brexit: where sovereignty and stability collide?. *Journal of Contemporary European Studies*, 29(3), 405-418
+
+mySociety. *Hello, we're mySociety*. <https://www.mysociety.org/about/>. Accessed 30.08.2024
 
 Public Administration and Constitutional Affairs Committee. (2017). Lessons Learned from
 the EU Referendum (Twelth Report of Session 2016-17). *House of Commons*.
 
 Rheault, L., Beelen, K., Cochrane, C., & Hirst, G. (2016). Measuring emotion in parliamentary debates with automated textual analysis. *PLoS ONE*, 11(12). https://doi.org/10.1371/journal.pone.0168843
 
+Rone, J. (2023). “Enemies of the people”? Diverging discourses on sovereignty in media coverage of Brexit. *British Politics*, 18, 519-537
+
 Russell, M. (2021). Brexit and Parliament: The Anatomy of a Perfect Storm. *Parliamentary Affairs*, 74, 443-463  
+
+TheyWorkForYou *About TheyWorkForYou*. <https://www.theyworkforyou.com/about/>. Accessed 30.08.2024
 
 UK Parliament a). *Debates*. <https://www.parliament.uk/about/how/business/debates/>. Accessed 30.08.2024
 
@@ -910,6 +983,6 @@ UK Parliament b). *Give way*. <https://www.parliament.uk/site-information/glossa
 
 UK Parliament c). *Parliamentary Sovereignty*. <https://www.parliament.uk/site-information/glossary/parliamentary-sovereignty/>. Accessed 21.08.2024
 
-
+van Atteveldt, W. et al. (2021). The Validity of Sentiment Analysis: Comparing Manual Annotation, Crowd-Coding, Dictionary Approaches, and Machine Learning Algorithms. *Communication Methods and Measures*, 15(2), 121-140
 
 Wijffels, Jan. 2021. Udpipe: Tokenization, Parts of Speech Tagging, Lemmatization and Dependency Parsing with the ’UDPipe’ ’NLP’ Toolkit. https://CRAN.R-project.org/package=udpipe.
